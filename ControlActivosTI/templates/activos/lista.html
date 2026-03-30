@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Activos - ControlActivosTI{% endblock %}
+{% block page_title %}Activos{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-2xl shadow p-6">
+    <form method="get" class="space-y-6 mb-6">
+        <div>
+            <label class="block mb-2 font-medium">Búsqueda</label>
+            <input
+                type="text"
+                name="q"
+                value="{{ busqueda }}"
+                placeholder="Buscar por código, marca, modelo o serie"
+                class="w-full border border-slate-300 rounded-lg px-4 py-2"
+            >
+        </div>
+
+        <div>
+            <p class="block mb-3 font-medium">Columnas a mostrar</p>
+            <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+                {% for key, label in columnas_disponibles %}
+                    <label class="flex items-center gap-2 text-sm">
+                        <input
+                            type="checkbox"
+                            name="cols"
+                            value="{{ key }}"
+                            {% if key in columnas_seleccionadas %}checked{% endif %}
+                        >
+                        <span>{{ label }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+            <p class="text-xs text-slate-500 mt-2">La columna Acción siempre se muestra.</p>
+        </div>
+
+        <div class="flex gap-3">
+            <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800">
+                Aplicar
+            </button>
+            <a href="{% url 'activos:lista' %}" class="px-4 py-2 bg-slate-200 rounded-lg hover:bg-slate-300">
+                Restablecer
+            </a>
+        </div>
+    </form>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+            <thead>
+                <tr class="border-b">
+                    {% if "codigo" in columnas_seleccionadas %}<th class="text-left py-3">Código</th>{% endif %}
+                    {% if "tipo_activo" in columnas_seleccionadas %}<th class="text-left py-3">Tipo</th>{% endif %}
+                    {% if "marca" in columnas_seleccionadas %}<th class="text-left py-3">Marca</th>{% endif %}
+                    {% if "modelo" in columnas_seleccionadas %}<th class="text-left py-3">Modelo</th>{% endif %}
+                    {% if "serie" in columnas_seleccionadas %}<th class="text-left py-3">Serie</th>{% endif %}
+                    {% if "cpu" in columnas_seleccionadas %}<th class="text-left py-3">CPU</th>{% endif %}
+                    {% if "ram" in columnas_seleccionadas %}<th class="text-left py-3">RAM</th>{% endif %}
+                    {% if "disco" in columnas_seleccionadas %}<th class="text-left py-3">Disco</th>{% endif %}
+                    {% if "sistema_operativo" in columnas_seleccionadas %}<th class="text-left py-3">Sistema operativo</th>{% endif %}
+                    {% if "fecha_compra" in columnas_seleccionadas %}<th class="text-left py-3">Fecha de compra</th>{% endif %}
+                    {% if "valor" in columnas_seleccionadas %}<th class="text-left py-3">Valor</th>{% endif %}
+                    {% if "estado_activo" in columnas_seleccionadas %}<th class="text-left py-3">Estado</th>{% endif %}
+                    <th class="text-left py-3">Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for activo in activos %}
+                <tr class="border-b">
+                    {% if "codigo" in columnas_seleccionadas %}<td class="py-3">{{ activo.codigo }}</td>{% endif %}
+                    {% if "tipo_activo" in columnas_seleccionadas %}<td class="py-3">{{ activo.tipo_activo }}</td>{% endif %}
+                    {% if "marca" in columnas_seleccionadas %}<td class="py-3">{{ activo.marca }}</td>{% endif %}
+                    {% if "modelo" in columnas_seleccionadas %}<td class="py-3">{{ activo.modelo }}</td>{% endif %}
+                    {% if "serie" in columnas_seleccionadas %}<td class="py-3">{{ activo.serie }}</td>{% endif %}
+                    {% if "cpu" in columnas_seleccionadas %}<td class="py-3">{{ activo.cpu|default:"-" }}</td>{% endif %}
+                    {% if "ram" in columnas_seleccionadas %}<td class="py-3">{{ activo.ram|default:"-" }}</td>{% endif %}
+                    {% if "disco" in columnas_seleccionadas %}<td class="py-3">{{ activo.disco|default:"-" }}</td>{% endif %}
+                    {% if "sistema_operativo" in columnas_seleccionadas %}<td class="py-3">{{ activo.sistema_operativo }}</td>{% endif %}
+                    {% if "fecha_compra" in columnas_seleccionadas %}<td class="py-3">{{ activo.fecha_compra|default:"-" }}</td>{% endif %}
+                    {% if "valor" in columnas_seleccionadas %}
+                        <td class="py-3">
+                            {% if activo.valor %}${{ activo.valor }}{% else %}-{% endif %}
+                        </td>
+                    {% endif %}
+                    {% if "estado_activo" in columnas_seleccionadas %}<td class="py-3">{{ activo.estado_activo }}</td>{% endif %}
+                    <td class="py-3">
+                        <a href="{% url 'activos:detalle' activo.pk %}" class="text-blue-600 hover:underline">
+                            Ver detalle
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="20" class="py-6 text-center text-slate-500">No hay activos registrados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

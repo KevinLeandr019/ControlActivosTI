@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva asignación - ControlActivosTI{% endblock %}
+{% block page_title %}Nueva asignación{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl bg-white rounded-2xl shadow p-6">
+    <form method="post" class="space-y-5">
+        {% csrf_token %}
+
+        <div>
+            <label class="block mb-2 font-medium">Colaborador</label>
+            {{ form.colaborador }}
+            {% if form.colaborador.errors %}
+                <p class="text-red-600 text-sm mt-1">{{ form.colaborador.errors|join:", " }}</p>
+            {% endif %}
+        </div>
+
+        <div>
+            <label class="block mb-2 font-medium">Activo</label>
+            {{ form.activo }}
+            {% if form.activo.errors %}
+                <p class="text-red-600 text-sm mt-1">{{ form.activo.errors|join:", " }}</p>
+            {% endif %}
+        </div>
+
+        <div>
+            <label class="block mb-2 font-medium">Fecha de asignación</label>
+            {{ form.fecha_asignacion }}
+            {% if form.fecha_asignacion.errors %}
+                <p class="text-red-600 text-sm mt-1">{{ form.fecha_asignacion.errors|join:", " }}</p>
+            {% endif %}
+        </div>
+
+        <div>
+            <label class="block mb-2 font-medium">Observaciones de entrega</label>
+            {{ form.observaciones_entrega }}
+            {% if form.observaciones_entrega.errors %}
+                <p class="text-red-600 text-sm mt-1">{{ form.observaciones_entrega.errors|join:", " }}</p>
+            {% endif %}
+        </div>
+
+        {% if form.non_field_errors %}
+            <div class="px-4 py-3 rounded-lg bg-red-100 text-red-700 border border-red-200">
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
+
+        <div class="flex gap-3">
+            <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800">
+                Guardar asignación
+            </button>
+            <a href="{% url 'asignaciones:lista' %}" class="px-4 py-2 bg-slate-200 rounded-lg hover:bg-slate-300">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

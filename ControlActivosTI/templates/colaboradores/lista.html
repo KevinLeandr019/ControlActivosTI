@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Colaboradores - ControlActivosTI{% endblock %}
+{% block page_title %}Colaboradores{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-2xl shadow p-6">
+    <form method="get" class="space-y-6 mb-6">
+        <div>
+            <label class="block mb-2 font-medium">Búsqueda</label>
+            <input
+                type="text"
+                name="q"
+                value="{{ busqueda }}"
+                placeholder="Buscar por nombre, cédula o correo"
+                class="w-full border border-slate-300 rounded-lg px-4 py-2"
+            >
+        </div>
+
+        <div>
+            <p class="block mb-3 font-medium">Columnas a mostrar</p>
+            <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+                {% for key, label in columnas_disponibles %}
+                    <label class="flex items-center gap-2 text-sm">
+                        <input
+                            type="checkbox"
+                            name="cols"
+                            value="{{ key }}"
+                            {% if key in columnas_seleccionadas %}checked{% endif %}
+                        >
+                        <span>{{ label }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+            <p class="text-xs text-slate-500 mt-2">La columna Acción siempre se muestra.</p>
+        </div>
+
+        <div class="flex gap-3">
+            <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800">
+                Aplicar
+            </button>
+            <a href="{% url 'colaboradores:lista' %}" class="px-4 py-2 bg-slate-200 rounded-lg hover:bg-slate-300">
+                Restablecer
+            </a>
+        </div>
+    </form>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+            <thead>
+                <tr class="border-b">
+                    {% if "apellidos" in columnas_seleccionadas %}<th class="text-left py-3">Apellidos</th>{% endif %}
+                    {% if "nombres" in columnas_seleccionadas %}<th class="text-left py-3">Nombres</th>{% endif %}
+                    {% if "cedula" in columnas_seleccionadas %}<th class="text-left py-3">Cédula</th>{% endif %}
+                    {% if "correo_corporativo" in columnas_seleccionadas %}<th class="text-left py-3">Correo</th>{% endif %}
+                    {% if "empresa" in columnas_seleccionadas %}<th class="text-left py-3">Empresa</th>{% endif %}
+                    {% if "area" in columnas_seleccionadas %}<th class="text-left py-3">Área</th>{% endif %}
+                    {% if "cargo" in columnas_seleccionadas %}<th class="text-left py-3">Cargo</th>{% endif %}
+                    {% if "ubicacion" in columnas_seleccionadas %}<th class="text-left py-3">Ubicación</th>{% endif %}
+                    {% if "estado" in columnas_seleccionadas %}<th class="text-left py-3">Estado</th>{% endif %}
+                    {% if "fecha_ingreso" in columnas_seleccionadas %}<th class="text-left py-3">Fecha de ingreso</th>{% endif %}
+                    <th class="text-left py-3">Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for colaborador in colaboradores %}
+                <tr class="border-b">
+                    {% if "apellidos" in columnas_seleccionadas %}<td class="py-3">{{ colaborador.apellidos }}</td>{% endif %}
+                    {% if "nombres" in columnas_seleccionadas %}<td class="py-3">{{ colaborador.nombres }}</td>{% endif %}
+                    {% if "cedula" in columnas_seleccionadas %}<td class="py-3">{{ colaborador.cedula }}</td>{% endif %}
+                    {% if "correo_corporativo" in columnas_seleccionadas %}<td class="py-3">{{ colaborador.correo_corporativo }}</td>{% endif %}
+                    {% if "empresa" in columnas_seleccionadas %}<td class="py-3">{{ colaborador.empresa|default:"-" }}</td>{% endif %}
+                    {% if "area" in columnas_seleccionadas %}<td class="py-3">{{ colaborador.area }}</td>{% endif %}
+                    {% if "cargo" in columnas_seleccionadas %}<td class="py-3">{{ colaborador.cargo }}</td>{% endif %}
+                    {% if "ubicacion" in columnas_seleccionadas %}<td class="py-3">{{ colaborador.ubicacion|default:"-" }}</td>{% endif %}
+                    {% if "estado" in columnas_seleccionadas %}<td class="py-3">{{ colaborador.estado }}</td>{% endif %}
+                    {% if "fecha_ingreso" in columnas_seleccionadas %}<td class="py-3">{{ colaborador.fecha_ingreso }}</td>{% endif %}
+                    <td class="py-3">
+                        <a href="{% url 'colaboradores:detalle' colaborador.pk %}" class="text-blue-600 hover:underline">
+                            Ver detalle
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="20" class="py-6 text-center text-slate-500">No hay colaboradores registrados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

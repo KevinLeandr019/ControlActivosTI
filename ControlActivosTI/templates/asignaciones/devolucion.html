@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar devolución - ControlActivosTI{% endblock %}
+{% block page_title %}Registrar devolución{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-1 bg-white rounded-2xl shadow p-6">
+        <h3 class="text-lg font-semibold mb-4">Resumen</h3>
+
+        <div class="space-y-2 text-sm">
+            <p><strong>Activo:</strong> {{ object.activo.codigo }}</p>
+            <p><strong>Colaborador:</strong> {{ object.colaborador }}</p>
+            <p><strong>Fecha asignación:</strong> {{ object.fecha_asignacion }}</p>
+            <p><strong>Responsable:</strong> {{ object.usuario_responsable }}</p>
+        </div>
+    </div>
+
+    <div class="lg:col-span-2 bg-white rounded-2xl shadow p-6">
+        <form method="post" class="space-y-5">
+            {% csrf_token %}
+
+            <div>
+                <label class="block mb-2 font-medium">Fecha de devolución</label>
+                {{ form.fecha_devolucion }}
+                {% if form.fecha_devolucion.errors %}
+                    <p class="text-red-600 text-sm mt-1">{{ form.fecha_devolucion.errors|join:", " }}</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label class="block mb-2 font-medium">Estado final del activo</label>
+                {{ form.estado_activo_devolucion }}
+                {% if form.estado_activo_devolucion.errors %}
+                    <p class="text-red-600 text-sm mt-1">{{ form.estado_activo_devolucion.errors|join:", " }}</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label class="block mb-2 font-medium">Observaciones de devolución</label>
+                {{ form.observaciones_devolucion }}
+                {% if form.observaciones_devolucion.errors %}
+                    <p class="text-red-600 text-sm mt-1">{{ form.observaciones_devolucion.errors|join:", " }}</p>
+                {% endif %}
+            </div>
+
+            {% if form.non_field_errors %}
+                <div class="px-4 py-3 rounded-lg bg-red-100 text-red-700 border border-red-200">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <div class="flex gap-3">
+                <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800">
+                    Guardar devolución
+                </button>
+                <a href="{% url 'asignaciones:lista' %}" class="px-4 py-2 bg-slate-200 rounded-lg hover:bg-slate-300">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

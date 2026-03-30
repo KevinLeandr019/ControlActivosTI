@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Detalle de activo - ControlActivosTI{% endblock %}
+{% block page_title %}Detalle del activo{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <div class="flex justify-between items-center">
+        <a href="{% url 'activos:lista' %}" class="px-4 py-2 bg-slate-200 rounded-lg hover:bg-slate-300">
+            Volver a activos
+        </a>
+
+        {% if asignacion_activa %}
+            <span class="px-3 py-2 rounded-lg bg-amber-100 text-amber-800 text-sm">
+                Actualmente asignado
+            </span>
+        {% else %}
+            <span class="px-3 py-2 rounded-lg bg-green-100 text-green-800 text-sm">
+                Sin asignación activa
+            </span>
+        {% endif %}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white rounded-2xl shadow p-6">
+            <h3 class="text-lg font-semibold mb-4">Información general</h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div><strong>Código:</strong> {{ activo.codigo }}</div>
+                <div><strong>Tipo:</strong> {{ activo.tipo_activo }}</div>
+                <div><strong>Marca:</strong> {{ activo.marca }}</div>
+                <div><strong>Modelo:</strong> {{ activo.modelo }}</div>
+                <div><strong>Serie:</strong> {{ activo.serie }}</div>
+                <div><strong>CPU:</strong> {{ activo.cpu|default:"-" }}</div>
+                <div><strong>RAM:</strong> {{ activo.ram|default:"-" }}</div>
+                <div><strong>Disco:</strong> {{ activo.disco|default:"-" }}</div>
+                <div><strong>Sistema operativo:</strong> {{ activo.sistema_operativo }}</div>
+                <div><strong>Fecha de compra:</strong> {{ activo.fecha_compra|default:"-" }}</div>
+                <div>
+                    <strong>Valor:</strong>
+                    {% if activo.valor %}
+                        ${{ activo.valor }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+                <div><strong>Estado:</strong> {{ activo.estado_activo }}</div>
+            </div>
+
+            <div class="mt-6">
+                <strong>Observaciones:</strong>
+                <p class="mt-2 text-slate-600">{{ activo.observaciones|default:"Sin observaciones." }}</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow p-6">
+            <h3 class="text-lg font-semibold mb-4">Asignación actual</h3>
+
+            {% if asignacion_activa %}
+                <div class="space-y-2 text-sm">
+                    <p><strong>Colaborador:</strong> {{ asignacion_activa.colaborador }}</p>
+                    <p><strong>Fecha de asignación:</strong> {{ asignacion_activa.fecha_asignacion }}</p>
+                    <p><strong>Responsable TI:</strong> {{ asignacion_activa.usuario_responsable }}</p>
+                    <p><strong>Observaciones:</strong> {{ asignacion_activa.observaciones_entrega|default:"-" }}</p>
+                </div>
+            {% else %}
+                <p class="text-slate-500">Este activo no tiene una asignación activa.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow p-6">
+        <h3 class="text-lg font-semibold mb-4">Fotos del activo</h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {% for foto in activo.fotos.all %}
+                <div class="border rounded-xl p-3">
+                    <img src="{{ foto.imagen.url }}" class="w-full h-56 object-cover rounded-lg border" alt="Foto del activo">
+                    <p class="text-sm text-slate-500 mt-2">{{ foto.descripcion|default:"Sin descripción." }}</p>
+                </div>
+            {% empty %}
+                <p class="text-slate-500">Este activo no tiene fotos registradas.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="bg-white rounded-2xl shadow p-6">
+            <h3 class="text-lg font-semibold mb-4">Historial de eventos</h3>
+
+            <div class="space-y-4">
+                {% for evento in historial_eventos %}
+                    <div class="border rounded-xl p-4">
+                        <p class="font-medium">{{ evento.tipo_evento }}</p>
+                        <p class="text-sm text-slate-500">{{ evento.fecha_evento }} · {{ evento.usuario_responsable }}</p>
+                        <p class="mt-2 text-sm text-slate-700">{{ evento.detalle }}</p>
+                    </div>
+                {% empty %}
+                    <p class="text-slate-500">No hay eventos registrados para este activo.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow p-6">
+            <h3 class="text-lg font-semibold mb-4">Historial de asignaciones</h3>
+
+            <div class="space-y-4">
+                {% for asignacion in historial_asignaciones %}
+                    <div class="border rounded-xl p-4">
+                        <p><strong>Colaborador:</strong> {{ asignacion.colaborador }}</p>
+                        <p><strong>Fecha de asignación:</strong> {{ asignacion.fecha_asignacion }}</p>
+                        <p><strong>Estado:</strong> {{ asignacion.estado_asignacion }}</p>
+
+                        {% if asignacion.fecha_devolucion %}
+                            <p><strong>Fecha de devolución:</strong> {{ asignacion.fecha_devolucion }}</p>
+                            <p><strong>Estado final:</strong> {{ asignacion.estado_activo_devolucion|default:"-" }}</p>
+                        {% endif %}
+                    </div>
+                {% empty %}
+                    <p class="text-slate-500">No hay asignaciones registradas para este activo.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Detalle de colaborador - ControlActivosTI{% endblock %}
+{% block page_title %}Detalle del colaborador{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <div>
+        <a href="{% url 'colaboradores:lista' %}" class="px-4 py-2 bg-slate-200 rounded-lg hover:bg-slate-300">
+            Volver a colaboradores
+        </a>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow p-6">
+        <h3 class="text-lg font-semibold mb-4">Información general</h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div><strong>Nombres:</strong> {{ colaborador.nombres }}</div>
+            <div><strong>Apellidos:</strong> {{ colaborador.apellidos }}</div>
+            <div><strong>Cédula:</strong> {{ colaborador.cedula }}</div>
+            <div><strong>Correo:</strong> {{ colaborador.correo_corporativo }}</div>
+            <div><strong>Empresa:</strong> {{ colaborador.empresa|default:"-" }}</div>
+            <div><strong>Área:</strong> {{ colaborador.area }}</div>
+            <div><strong>Cargo:</strong> {{ colaborador.cargo }}</div>
+            <div><strong>Ubicación:</strong> {{ colaborador.ubicacion|default:"-" }}</div>
+            <div><strong>Estado:</strong> {{ colaborador.estado }}</div>
+            <div><strong>Fecha de ingreso:</strong> {{ colaborador.fecha_ingreso }}</div>
+        </div>
+
+        <div class="mt-6">
+            <strong>Observaciones:</strong>
+            <p class="mt-2 text-slate-600">{{ colaborador.observaciones|default:"Sin observaciones." }}</p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow p-6">
+        <h3 class="text-lg font-semibold mb-4">Activos actualmente asignados</h3>
+
+        <div class="space-y-4">
+            {% for asignacion in asignaciones_activas %}
+                <div class="border rounded-xl p-4">
+                    <p><strong>Activo:</strong> {{ asignacion.activo.codigo }}</p>
+                    <p><strong>Equipo:</strong> {{ asignacion.activo.marca }} {{ asignacion.activo.modelo }}</p>
+                    <p><strong>Serie:</strong> {{ asignacion.activo.serie }}</p>
+                    <p><strong>Fecha de asignación:</strong> {{ asignacion.fecha_asignacion }}</p>
+                </div>
+            {% empty %}
+                <p class="text-slate-500">Este colaborador no tiene activos asignados actualmente.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow p-6">
+        <h3 class="text-lg font-semibold mb-4">Historial de asignaciones</h3>
+
+        <div class="space-y-4">
+            {% for asignacion in historial_asignaciones %}
+                <div class="border rounded-xl p-4">
+                    <p><strong>Activo:</strong> {{ asignacion.activo.codigo }}</p>
+                    <p><strong>Equipo:</strong> {{ asignacion.activo.marca }} {{ asignacion.activo.modelo }}</p>
+                    <p><strong>Fecha de asignación:</strong> {{ asignacion.fecha_asignacion }}</p>
+                    <p><strong>Estado:</strong> {{ asignacion.estado_asignacion }}</p>
+
+                    {% if asignacion.fecha_devolucion %}
+                        <p><strong>Fecha de devolución:</strong> {{ asignacion.fecha_devolucion }}</p>
+                        <p><strong>Estado final del activo:</strong> {{ asignacion.estado_activo_devolucion|default:"-" }}</p>
+                    {% endif %}
+                </div>
+            {% empty %}
+                <p class="text-slate-500">No hay historial de asignaciones para este colaborador.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

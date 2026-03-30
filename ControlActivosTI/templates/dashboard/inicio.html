@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - ControlActivosTI{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+    <div class="bg-white rounded-2xl shadow p-6">
+        <p class="text-slate-500">Total activos</p>
+        <h3 class="text-3xl font-bold mt-2">{{ total_activos }}</h3>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow p-6">
+        <p class="text-slate-500">Colaboradores</p>
+        <h3 class="text-3xl font-bold mt-2">{{ total_colaboradores }}</h3>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow p-6">
+        <p class="text-slate-500">Asignaciones activas</p>
+        <h3 class="text-3xl font-bold mt-2">{{ asignaciones_activas }}</h3>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow p-6">
+        <p class="text-slate-500">Activos disponibles</p>
+        <h3 class="text-3xl font-bold mt-2">{{ activos_disponibles }}</h3>
+    </div>
+</div>
+{% endblock %}

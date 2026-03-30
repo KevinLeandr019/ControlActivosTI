@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar sesión - ControlActivosTI</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="min-h-screen bg-slate-100 flex items-center justify-center">
+    <div class="w-full max-w-md bg-white shadow-lg rounded-2xl p-8">
+        <h1 class="text-2xl font-bold mb-6 text-center">ControlActivosTI</h1>
+        <p class="text-center text-slate-500 mb-6">Ingreso al sistema</p>
+
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="w-full bg-slate-900 text-white py-2 rounded-lg hover:bg-slate-800">
+                Iniciar sesión
+            </button>
+        </form>
+    </div>
+</body>
+</html>

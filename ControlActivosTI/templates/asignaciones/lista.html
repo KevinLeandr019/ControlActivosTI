@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Asignaciones - ControlActivosTI{% endblock %}
+{% block page_title %}Asignaciones{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-2xl shadow p-6 overflow-x-auto">
+    <div class="flex justify-end mb-6">
+        <a href="{% url 'asignaciones:nueva' %}" class="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800">
+            Nueva asignación
+        </a>
+    </div>
+
+    <table class="min-w-full text-sm">
+        <thead>
+            <tr class="border-b">
+                <th class="text-left py-3">Activo</th>
+                <th class="text-left py-3">Colaborador</th>
+                <th class="text-left py-3">Fecha</th>
+                <th class="text-left py-3">Estado</th>
+                <th class="text-left py-3">Responsable</th>
+                <th class="text-left py-3">Devolución</th>
+                <th class="text-left py-3">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for asignacion in asignaciones %}
+            <tr class="border-b">
+                <td class="py-3">{{ asignacion.activo.codigo }}</td>
+                <td class="py-3">{{ asignacion.colaborador }}</td>
+                <td class="py-3">{{ asignacion.fecha_asignacion }}</td>
+                <td class="py-3">{{ asignacion.estado_asignacion }}</td>
+                <td class="py-3">{{ asignacion.usuario_responsable }}</td>
+                <td class="py-3">{{ asignacion.fecha_devolucion|default:"-" }}</td>
+                <td class="py-3">
+                    {% if asignacion.estado_asignacion == "ACTIVA" %}
+                        <a href="{% url 'asignaciones:devolver' asignacion.pk %}" class="text-blue-600 hover:underline">
+                            Registrar devolución
+                        </a>
+                    {% else %}
+                        <span class="text-slate-400">Sin acciones</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="py-6 text-center text-slate-500">No hay asignaciones registradas.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
