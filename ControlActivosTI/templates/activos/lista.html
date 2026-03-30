@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Colaboradores - ControlActivosTI{% endblock %}
-{% block page_title %}Colaboradores{% endblock %}
+{% block title %}Activos - ControlActivosTI{% endblock %}
+{% block page_title %}Activos{% endblock %}
 
 {% block content %}
 <div class="bg-white rounded-2xl shadow p-6">
@@ -12,7 +12,7 @@
                 type="text"
                 name="q"
                 value="{{ busqueda }}"
-                placeholder="Buscar por nombre, cédula o correo"
+                placeholder="Buscar por código, marca, modelo o serie"
                 class="w-full border border-slate-300 rounded-lg px-4 py-2"
             >
         </div>
@@ -39,7 +39,7 @@
             <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800">
                 Aplicar
             </button>
-            <a href="{% url 'colaboradores:lista' %}" class="px-4 py-2 bg-slate-200 rounded-lg hover:bg-slate-300">
+            <a href="{% url 'activos:lista' %}" class="px-4 py-2 bg-slate-200 rounded-lg hover:bg-slate-300">
                 Restablecer
             </a>
         </div>
@@ -49,41 +49,49 @@
         <table class="min-w-full text-sm">
             <thead>
                 <tr class="border-b">
-                    {% if "apellidos" in columnas_seleccionadas %}<th class="text-left py-3">Apellidos</th>{% endif %}
-                    {% if "nombres" in columnas_seleccionadas %}<th class="text-left py-3">Nombres</th>{% endif %}
-                    {% if "cedula" in columnas_seleccionadas %}<th class="text-left py-3">Cédula</th>{% endif %}
-                    {% if "correo_corporativo" in columnas_seleccionadas %}<th class="text-left py-3">Correo</th>{% endif %}
-                    {% if "empresa" in columnas_seleccionadas %}<th class="text-left py-3">Empresa</th>{% endif %}
-                    {% if "area" in columnas_seleccionadas %}<th class="text-left py-3">Área</th>{% endif %}
-                    {% if "cargo" in columnas_seleccionadas %}<th class="text-left py-3">Cargo</th>{% endif %}
-                    {% if "ubicacion" in columnas_seleccionadas %}<th class="text-left py-3">Ubicación</th>{% endif %}
-                    {% if "estado" in columnas_seleccionadas %}<th class="text-left py-3">Estado</th>{% endif %}
-                    {% if "fecha_ingreso" in columnas_seleccionadas %}<th class="text-left py-3">Fecha de ingreso</th>{% endif %}
+                    {% if "codigo" in columnas_seleccionadas %}<th class="text-left py-3">Código</th>{% endif %}
+                    {% if "tipo_activo" in columnas_seleccionadas %}<th class="text-left py-3">Tipo</th>{% endif %}
+                    {% if "marca" in columnas_seleccionadas %}<th class="text-left py-3">Marca</th>{% endif %}
+                    {% if "modelo" in columnas_seleccionadas %}<th class="text-left py-3">Modelo</th>{% endif %}
+                    {% if "serie" in columnas_seleccionadas %}<th class="text-left py-3">Serie</th>{% endif %}
+                    {% if "cpu" in columnas_seleccionadas %}<th class="text-left py-3">CPU</th>{% endif %}
+                    {% if "ram" in columnas_seleccionadas %}<th class="text-left py-3">RAM</th>{% endif %}
+                    {% if "disco" in columnas_seleccionadas %}<th class="text-left py-3">Disco</th>{% endif %}
+                    {% if "sistema_operativo" in columnas_seleccionadas %}<th class="text-left py-3">Sistema operativo</th>{% endif %}
+                    {% if "fecha_compra" in columnas_seleccionadas %}<th class="text-left py-3">Fecha de compra</th>{% endif %}
+                    {% if "valor" in columnas_seleccionadas %}<th class="text-left py-3">Valor</th>{% endif %}
+                    {% if "estado_activo" in columnas_seleccionadas %}<th class="text-left py-3">Estado</th>{% endif %}
                     <th class="text-left py-3">Acción</th>
                 </tr>
             </thead>
             <tbody>
-                {% for colaborador in colaboradores %}
+                {% for activo in activos %}
                 <tr class="border-b">
-                    {% if "apellidos" in columnas_seleccionadas %}<td class="py-3">{{ colaborador.apellidos }}</td>{% endif %}
-                    {% if "nombres" in columnas_seleccionadas %}<td class="py-3">{{ colaborador.nombres }}</td>{% endif %}
-                    {% if "cedula" in columnas_seleccionadas %}<td class="py-3">{{ colaborador.cedula }}</td>{% endif %}
-                    {% if "correo_corporativo" in columnas_seleccionadas %}<td class="py-3">{{ colaborador.correo_corporativo }}</td>{% endif %}
-                    {% if "empresa" in columnas_seleccionadas %}<td class="py-3">{{ colaborador.empresa|default:"-" }}</td>{% endif %}
-                    {% if "area" in columnas_seleccionadas %}<td class="py-3">{{ colaborador.area }}</td>{% endif %}
-                    {% if "cargo" in columnas_seleccionadas %}<td class="py-3">{{ colaborador.cargo }}</td>{% endif %}
-                    {% if "ubicacion" in columnas_seleccionadas %}<td class="py-3">{{ colaborador.ubicacion|default:"-" }}</td>{% endif %}
-                    {% if "estado" in columnas_seleccionadas %}<td class="py-3">{{ colaborador.estado }}</td>{% endif %}
-                    {% if "fecha_ingreso" in columnas_seleccionadas %}<td class="py-3">{{ colaborador.fecha_ingreso }}</td>{% endif %}
+                    {% if "codigo" in columnas_seleccionadas %}<td class="py-3">{{ activo.codigo }}</td>{% endif %}
+                    {% if "tipo_activo" in columnas_seleccionadas %}<td class="py-3">{{ activo.tipo_activo }}</td>{% endif %}
+                    {% if "marca" in columnas_seleccionadas %}<td class="py-3">{{ activo.marca }}</td>{% endif %}
+                    {% if "modelo" in columnas_seleccionadas %}<td class="py-3">{{ activo.modelo }}</td>{% endif %}
+                    {% if "serie" in columnas_seleccionadas %}<td class="py-3">{{ activo.serie }}</td>{% endif %}
+                    {% if "cpu" in columnas_seleccionadas %}<td class="py-3">{{ activo.cpu|default:"-" }}</td>{% endif %}
+                    {% if "ram" in columnas_seleccionadas %}<td class="py-3">{{ activo.ram|default:"-" }}</td>{% endif %}
+                    {% if "disco" in columnas_seleccionadas %}<td class="py-3">{{ activo.disco|default:"-" }}</td>{% endif %}
+                    {% if "sistema_operativo" in columnas_seleccionadas %}<td class="py-3">{{ activo.sistema_operativo }}</td>{% endif %}
+                    {% if "fecha_compra" in columnas_seleccionadas %}<td class="py-3">{{ activo.fecha_compra|default:"-" }}</td>{% endif %}
+                    {% if "valor" in columnas_seleccionadas %}
+                        <td class="py-3">
+                            {% if activo.valor %}${{ activo.valor }}{% else %}-{% endif %}
+                        </td>
+                    {% endif %}
+                    {% if "estado_activo" in columnas_seleccionadas %}<td class="py-3">{{ activo.estado_activo }}</td>{% endif %}
                     <td class="py-3">
-                        <a href="{% url 'colaboradores:detalle' colaborador.pk %}" class="text-blue-600 hover:underline">
+                        <a href="{% url 'activos:detalle' activo.pk %}" class="text-blue-600 hover:underline">
                             Ver detalle
                         </a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="20" class="py-6 text-center text-slate-500">No hay colaboradores registrados.</td>
+                    <td colspan="20" class="py-6 text-center text-slate-500">No hay activos registrados.</td>
                 </tr>
                 {% endfor %}
             </tbody>
