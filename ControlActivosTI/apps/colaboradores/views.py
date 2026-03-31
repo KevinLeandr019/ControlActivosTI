@@ -1,9 +1,11 @@
+from decimal import Decimal
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Prefetch, Q
 from django.views.generic import DetailView, ListView
 
+from apps.activos.models import FotoActivo
 from apps.asignaciones.models import Asignacion
-
 from .models import Colaborador
 
 
@@ -41,8 +43,7 @@ class ColaboradorListView(LoginRequiredMixin, ListView):
     def get_selected_columns(self):
         columnas_validas = {key for key, _ in self.COLUMNAS_DISPONIBLES}
         seleccionadas = [
-            col for col in self.request.GET.getlist("cols")
-            if col in columnas_validas
+            col for col in self.request.GET.getlist("cols") if col in columnas_validas
         ]
         return seleccionadas or self.COLUMNAS_POR_DEFECTO
 
@@ -55,10 +56,10 @@ class ColaboradorListView(LoginRequiredMixin, ListView):
         busqueda = self.request.GET.get("q", "").strip()
         if busqueda:
             queryset = queryset.filter(
-                Q(nombres__icontains=busqueda) |
-                Q(apellidos__icontains=busqueda) |
-                Q(cedula__icontains=busqueda) |
-                Q(correo_corporativo__icontains=busqueda)
+                Q(nombres__icontains=busqueda)
+                | Q(apellidos__icontains=busqueda)
+                | Q(cedula__icontains=busqueda)
+                | Q(correo_corporativo__icontains=busqueda)
             )
 
         return queryset
@@ -77,31 +78,51 @@ class ColaboradorDetailView(LoginRequiredMixin, DetailView):
     context_object_name = "colaborador"
 
     def get_queryset(self):
+        asignaciones_qs = (
+            Asignacion.objects.select_related(
+                "activo",
+                "activo__tipo_activo",
+                "activo__estado_activo",
+                "usuario_responsable",
+                "usuario_recepcion",
+                "estado_activo_devolucion",
+            )
+            .prefetch_related(
+                Prefetch(
+                    "activo__fotos",
+                    queryset=FotoActivo.objects.order_by("orden", "id"),
+                )
+            )
+            .order_by("-fecha_asignacion", "-id")
+        )
+
         return (
             Colaborador.objects.select_related("empresa", "area", "cargo", "ubicacion")
             .prefetch_related(
-                Prefetch(
-                    "asignaciones",
-                    queryset=Asignacion.objects.select_related(
-                        "activo",
-                        "usuario_responsable",
-                        "usuario_recepcion",
-                        "estado_activo_devolucion",
-                    ).order_by("-fecha_asignacion", "-id"),
-                )
+                Prefetch("asignaciones", queryset=asignaciones_qs)
             )
         )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         colaborador = self.object
-
         asignaciones = list(colaborador.asignaciones.all())
-        context["asignaciones_activas"] = [
+
+        asignaciones_activas = [
             asignacion
             for asignacion in asignaciones
             if asignacion.estado_asignacion == Asignacion.EstadoAsignacion.ACTIVA
         ]
-        context["historial_asignaciones"] = asignaciones
 
+        context["asignaciones_activas"] = asignaciones_activas
+        context["historial_asignaciones"] = asignaciones
+        context["total_activos_asignados"] = len(asignaciones_activas)
+        context["valor_total_activos_asignados"] = sum(
+            (
+                asignacion.activo.valor or Decimal("0.00")
+                for asignacion in asignaciones_activas
+            ),
+            Decimal("0.00"),
+        )
+        context["puede_generar_acta"] = bool(asignaciones_activas)
         return context

@@ -14,6 +14,14 @@ class Asignacion(models.Model):
         ACTIVA = "ACTIVA", "Activa"
         CERRADA = "CERRADA", "Cerrada"
 
+    codigo_asignacion = models.CharField(
+        max_length=20,
+        unique=True,
+        editable=False,
+        db_index=True,
+        null=True,
+        blank=True,
+    )
     colaborador = models.ForeignKey(
         Colaborador,
         on_delete=models.PROTECT,
@@ -31,13 +39,11 @@ class Asignacion(models.Model):
         on_delete=models.PROTECT,
         related_name="asignaciones_registradas",
     )
-
     estado_asignacion = models.CharField(
         max_length=10,
         choices=EstadoAsignacion.choices,
         default=EstadoAsignacion.ACTIVA,
     )
-
     fecha_devolucion = models.DateField(null=True, blank=True)
     observaciones_devolucion = models.TextField(blank=True)
     usuario_recepcion = models.ForeignKey(
@@ -54,7 +60,6 @@ class Asignacion(models.Model):
         null=True,
         blank=True,
     )
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -71,7 +76,8 @@ class Asignacion(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.activo.codigo} -> {self.colaborador}"
+        codigo = self.codigo_asignacion or "SIN-CODIGO"
+        return f"{codigo} - {self.activo.codigo} -> {self.colaborador}"
 
     def _obtener_estado_asignado(self):
         estado = EstadoActivo.objects.filter(nombre__iexact="Asignado").first()
@@ -105,17 +111,17 @@ class Asignacion(models.Model):
                         {"activo": "El activo seleccionado no está disponible para asignación."}
                     )
 
-            existe_otra_activa = Asignacion.objects.filter(
-                activo_id=self.activo_id,
-                estado_asignacion=self.EstadoAsignacion.ACTIVA,
-            )
-            if self.pk:
-                existe_otra_activa = existe_otra_activa.exclude(pk=self.pk)
-
-            if existe_otra_activa.exists():
-                raise ValidationError(
-                    {"activo": "Este activo ya tiene una asignación activa."}
+                existe_otra_activa = Asignacion.objects.filter(
+                    activo_id=self.activo_id,
+                    estado_asignacion=self.EstadoAsignacion.ACTIVA,
                 )
+                if self.pk:
+                    existe_otra_activa = existe_otra_activa.exclude(pk=self.pk)
+
+                if existe_otra_activa.exists():
+                    raise ValidationError(
+                        {"activo": "Este activo ya tiene una asignación activa."}
+                    )
 
             if self.fecha_devolucion:
                 raise ValidationError(
@@ -154,6 +160,18 @@ class Asignacion(models.Model):
         with transaction.atomic():
             super().save(*args, **kwargs)
 
+            if not self.codigo_asignacion:
+                anio = (
+                    self.fecha_asignacion.year
+                    if self.fecha_asignacion
+                    else timezone.localdate().year
+                )
+                codigo = f"ASG-{anio}-{self.pk:05d}"
+                Asignacion.objects.filter(pk=self.pk).update(
+                    codigo_asignacion=codigo
+                )
+                self.codigo_asignacion = codigo
+
             if self.estado_asignacion == self.EstadoAsignacion.ACTIVA:
                 estado_asignado = self._obtener_estado_asignado()
                 if self.activo.estado_activo_id != estado_asignado.id:
@@ -169,3 +187,49 @@ class Asignacion(models.Model):
                             estado_activo=self.estado_activo_devolucion
                         )
                         self.activo.estado_activo = self.estado_activo_devolucion
+
+    @property
+    def nombre_colaborador_completo(self):
+        return f"{self.colaborador.nombres} {self.colaborador.apellidos}".strip()
+
+    @property
+    def articulo_acta(self):
+        if self.activo_id and self.activo.tipo_activo_id:
+            return self.activo.tipo_activo.nombre
+        return self.activo.codigo
+
+    @property
+    def caracteristicas_acta(self):
+        partes = []
+
+        if self.activo.modelo:
+            partes.append(f"Modelo: {self.activo.modelo}")
+        if self.activo.serie:
+            partes.append(f"Serie: {self.activo.serie}")
+        if self.activo.cpu:
+            partes.append(f"CPU: {self.activo.cpu}")
+        if self.activo.ram:
+            partes.append(f"RAM: {self.activo.ram}")
+        if self.activo.disco:
+            partes.append(f"Disco: {self.activo.disco}")
+        if self.activo.sistema_operativo:
+            partes.append(f"SO: {self.activo.sistema_operativo}")
+
+        return " | ".join(partes) if partes else "-"
+
+    @property
+    def observaciones_acta(self):
+        partes = []
+
+        if self.activo.observaciones:
+            partes.append(self.activo.observaciones.strip())
+
+        if self.observaciones_entrega:
+            partes.append(self.observaciones_entrega.strip())
+
+        return " | ".join([p for p in partes if p]) or "-"
+
+    @property
+    def foto_principal(self):
+        fotos = list(self.activo.fotos.all())
+        return fotos[0] if fotos else None

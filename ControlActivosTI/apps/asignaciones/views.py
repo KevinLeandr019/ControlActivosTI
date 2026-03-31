@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import HttpResponseRedirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, ListView, UpdateView
 
@@ -17,7 +18,10 @@ class AsignacionListView(LoginRequiredMixin, ListView):
         return (
             Asignacion.objects.select_related(
                 "activo",
+                "activo__tipo_activo",
+                "activo__estado_activo",
                 "colaborador",
+                "colaborador__cargo",
                 "usuario_responsable",
                 "usuario_recepcion",
                 "estado_activo_devolucion",
@@ -34,8 +38,12 @@ class AsignacionCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.usuario_responsable = self.request.user
-        messages.success(self.request, "La asignación fue creada correctamente.")
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        messages.success(
+            self.request,
+            f"La asignación {self.object.codigo_asignacion} fue creada correctamente.",
+        )
+        return response
 
 
 class AsignacionDevolucionView(LoginRequiredMixin, UpdateView):
@@ -53,11 +61,15 @@ class AsignacionDevolucionView(LoginRequiredMixin, UpdateView):
             estado_asignacion=Asignacion.EstadoAsignacion.ACTIVA
         )
 
-    def form_valid(self, form):
-        asignacion = form.save(commit=False)
-        asignacion.estado_asignacion = Asignacion.EstadoAsignacion.CERRADA
-        asignacion.usuario_recepcion = self.request.user
-        asignacion.save()
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
 
-        messages.success(self.request, "La devolución fue registrada correctamente.")
-        return super().form_valid(form)
+    def form_valid(self, form):
+        self.object = form.save()
+        messages.success(
+            self.request,
+            f"La devolución de {self.object.codigo_asignacion} fue registrada correctamente.",
+        )
+        return HttpResponseRedirect(self.get_success_url())

@@ -3,8 +3,8 @@ from django.utils import timezone
 
 from apps.catalogos.models import EstadoActivo
 from apps.colaboradores.models import Colaborador
-
 from .models import Asignacion
+
 
 class AsignacionCreateForm(forms.ModelForm):
     class Meta:
@@ -21,7 +21,6 @@ class AsignacionCreateForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
 
         self.fields["colaborador"].queryset = (
@@ -39,8 +38,23 @@ class AsignacionCreateForm(forms.ModelForm):
 
         self.fields["fecha_asignacion"].initial = timezone.localdate()
 
-        for field in self.fields.values():
-            field.widget.attrs["class"] = "w-full border border-slate-300 rounded-lg px-4 py-2"
+        base_class = (
+            "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 "
+            "shadow-sm outline-none transition duration-200 "
+            "focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+        )
+        textarea_class = (
+            "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 "
+            "shadow-sm outline-none transition duration-200 resize-none "
+            "focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+        )
+
+        for _, field in self.fields.items():
+            if isinstance(field.widget, forms.Textarea):
+                field.widget.attrs["class"] = textarea_class
+            else:
+                field.widget.attrs["class"] = base_class
+
 
 class AsignacionDevolucionForm(forms.ModelForm):
     class Meta:
@@ -52,10 +66,11 @@ class AsignacionDevolucionForm(forms.ModelForm):
         ]
         widgets = {
             "fecha_devolucion": forms.DateInput(attrs={"type": "date"}),
-            "observaciones_devolucion": forms.Textarea(attrs={"rows": 3}),
+            "observaciones_devolucion": forms.Textarea(attrs={"rows": 4}),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
         super().__init__(*args, **kwargs)
 
         self.fields["fecha_devolucion"].initial = timezone.localdate()
@@ -65,10 +80,27 @@ class AsignacionDevolucionForm(forms.ModelForm):
             .order_by("nombre")
         )
 
-        for field in self.fields.values():
-            field.widget.attrs["class"] = "w-full border border-slate-300 rounded-lg px-4 py-2"
+        base_class = (
+            "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 "
+            "shadow-sm outline-none transition duration-200 "
+            "focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+        )
+        textarea_class = (
+            "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 "
+            "shadow-sm outline-none transition duration-200 resize-none "
+            "focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+        )
 
-    
+        self.fields["fecha_devolucion"].widget.attrs["class"] = base_class
+        self.fields["estado_activo_devolucion"].widget.attrs["class"] = base_class
+        self.fields["observaciones_devolucion"].widget.attrs["class"] = textarea_class
+
+        # Importante: esta pantalla ya representa el cierre de la asignación
+        self.instance.estado_asignacion = Asignacion.EstadoAsignacion.CERRADA
+
+        if self.user and self.user.is_authenticated:
+            self.instance.usuario_recepcion = self.user
+
     def clean_fecha_devolucion(self):
         fecha_devolucion = self.cleaned_data["fecha_devolucion"]
 
@@ -78,3 +110,15 @@ class AsignacionDevolucionForm(forms.ModelForm):
             )
 
         return fecha_devolucion
+
+    def save(self, commit=True):
+        asignacion = super().save(commit=False)
+        asignacion.estado_asignacion = Asignacion.EstadoAsignacion.CERRADA
+
+        if self.user and self.user.is_authenticated:
+            asignacion.usuario_recepcion = self.user
+
+        if commit:
+            asignacion.save()
+
+        return asignacion
