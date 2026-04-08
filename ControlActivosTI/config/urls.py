@@ -5,10 +5,16 @@ from django.urls import include, path
 
 from .views import InicioView
 
+admin.site.site_header = "ControlActivosTI"
+admin.site.site_title = "ControlActivosTI Admin"
+admin.site.index_title = "Administración interna"
+
 urlpatterns = [
     path("admin/", admin.site.urls),
+
     path("", InicioView.as_view(), name="inicio-raiz"),
     path("dashboard/", InicioView.as_view(), name="dashboard-inicio"),
+
     path("cuentas/", include("apps.accounts.urls")),
     path("activos/", include("apps.activos.urls")),
     path("colaboradores/", include("apps.colaboradores.urls")),

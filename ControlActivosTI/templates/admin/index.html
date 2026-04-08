@@ -1,0 +1,62 @@
+{% extends "admin/base_site.html" %}
+{% load i18n log %}
+
+{% block bodyclass %}{{ block.super }} dashboard admin-home-page{% endblock %}
+{% block nav-sidebar %}{% endblock %}
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div class="admin-home">
+    <section class="admin-home-hero">
+        <div class="admin-home-hero__badge">Panel administrativo</div>
+        <h1>Administración interna</h1>
+        <p>
+            Gestiona módulos, inventario, asignaciones, usuarios y configuración
+            del sistema desde una vista más clara y moderna.
+        </p>
+    </section>
+
+    <div class="admin-home-layout">
+        <section class="admin-home-main">
+            {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+        </section>
+
+        <aside class="admin-home-side">
+            <div class="recent-actions-box">
+                <div class="recent-actions-box__header">
+                    <h2>{% translate 'Acciones recientes' %}</h2>
+                    <p>{% translate 'Mis acciones' %}</p>
+                </div>
+
+                {% get_admin_log 8 as admin_log for_user user %}
+                {% if admin_log %}
+                    <ul class="recent-actions-list">
+                        {% for entry in admin_log %}
+                            <li>
+                                <div class="recent-actions-list__title">
+                                    {% if entry.is_deletion or not entry.get_admin_url %}
+                                        {{ entry.object_repr }}
+                                    {% else %}
+                                        <a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
+                                    {% endif %}
+                                </div>
+                                <div class="recent-actions-list__meta">
+                                    {% if entry.content_type %}
+                                        {{ entry.content_type|capfirst }}
+                                    {% else %}
+                                        {% translate 'Objeto desconocido' %}
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="recent-actions-empty">
+                        {% translate 'Ninguno disponible' %}
+                    </div>
+                {% endif %}
+            </div>
+        </aside>
+    </div>
+</div>
+{% endblock %}

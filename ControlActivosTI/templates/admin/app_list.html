@@ -1,0 +1,56 @@
+{% load i18n %}
+
+{% if app_list %}
+<div class="admin-cards-grid">
+    {% for app in app_list %}
+        <section class="admin-app-card">
+            <header class="admin-app-card__header">
+                <div>
+                    <h2>
+                        {% if app.app_url %}
+                            <a href="{{ app.app_url }}">{{ app.name }}</a>
+                        {% else %}
+                            {{ app.name }}
+                        {% endif %}
+                    </h2>
+                    <span class="admin-app-card__count">
+                        {{ app.models|length }} módulo{{ app.models|length|pluralize }}
+                    </span>
+                </div>
+            </header>
+
+            <div class="admin-app-card__body">
+                {% for model in app.models %}
+                    <article class="admin-model-card">
+                        <div class="admin-model-card__info">
+                            <h3>
+                                {% if model.admin_url %}
+                                    <a href="{{ model.admin_url }}">{{ model.name }}</a>
+                                {% else %}
+                                    {{ model.name }}
+                                {% endif %}
+                            </h3>
+                        </div>
+
+                        <div class="admin-model-card__actions">
+                            {% if model.add_url %}
+                                <a href="{{ model.add_url }}" class="chip chip-add">
+                                    Añadir
+                                </a>
+                            {% endif %}
+
+                            {% if model.admin_url and show_changelinks %}
+                                <a href="{{ model.admin_url }}" class="chip chip-edit">
+                                    Modificar
+                                </a>
+                            {% endif %}
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        </section>
+    {% endfor %}
+</div>
+{% else %}
+<p>No tienes permisos para ver o editar nada.</p>
+{% endif %}
