@@ -1,29 +1,45 @@
 {% load i18n %}
 
 {% if app_list %}
+<div class="admin-mosaic-grid">
     {% for app in app_list %}
-        <section class="admin-app-section {% cycle 'section-pink' 'section-cyan' 'section-dark' 'section-orange' 'section-white' 'section-gold' %}">
+        {% with total=app.models|length %}
+        <section class="admin-app-section
+            {% cycle 'section-pink' 'section-cyan' 'section-dark' 'section-orange' 'section-white' 'section-gold' %}
+            {% if total >= 5 %}
+                tile-dense
+            {% elif forloop.counter == 1 %}
+                tile-wide
+            {% elif forloop.counter == 2 %}
+                tile-tall
+            {% elif forloop.counter == 3 %}
+                tile-medium
+            {% elif forloop.counter == 4 %}
+                tile-tall
+            {% else %}
+                tile-auto
+            {% endif %}
+        ">
             <div class="admin-app-section__overlay"></div>
 
             <div class="admin-app-section__content">
                 <div class="admin-app-section__header">
-                    <div>
-                        <span class="admin-app-section__eyebrow">
-                            {{ app.models|length }} módulo{{ app.models|length|pluralize }}
-                        </span>
-                        <h2>
-                            {% if app.app_url %}
-                                <a href="{{ app.app_url }}" target="_blank" rel="noopener noreferrer">
-                                    {{ app.name }}
-                                </a>
-                            {% else %}
+                    <span class="admin-app-section__eyebrow">
+                        {{ total }} módulo{{ total|pluralize }}
+                    </span>
+
+                    <h2>
+                        {% if app.app_url %}
+                            <a href="{{ app.app_url }}" target="_blank" rel="noopener noreferrer">
                                 {{ app.name }}
-                            {% endif %}
-                        </h2>
-                    </div>
+                            </a>
+                        {% else %}
+                            {{ app.name }}
+                        {% endif %}
+                    </h2>
                 </div>
 
-                <div class="admin-app-section__models">
+                <div class="admin-app-section__models {% if total >= 5 %}models-dense{% elif total == 1 %}models-single{% else %}models-multi{% endif %}">
                     {% for model in app.models %}
                         <article class="admin-model-panel">
                             <div class="admin-model-panel__info">
@@ -57,7 +73,9 @@
                 </div>
             </div>
         </section>
+        {% endwith %}
     {% endfor %}
+</div>
 {% else %}
-    <p>No tienes permisos para ver o editar nada.</p>
+<p>No tienes permisos para ver o editar nada.</p>
 {% endif %}
