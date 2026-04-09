@@ -1,56 +1,63 @@
 {% load i18n %}
 
 {% if app_list %}
-<div class="admin-cards-grid">
     {% for app in app_list %}
-        <section class="admin-app-card">
-            <header class="admin-app-card__header">
-                <div>
-                    <h2>
-                        {% if app.app_url %}
-                            <a href="{{ app.app_url }}">{{ app.name }}</a>
-                        {% else %}
-                            {{ app.name }}
-                        {% endif %}
-                    </h2>
-                    <span class="admin-app-card__count">
-                        {{ app.models|length }} módulo{{ app.models|length|pluralize }}
-                    </span>
+        <section class="admin-app-section {% cycle 'section-pink' 'section-cyan' 'section-dark' 'section-orange' 'section-white' 'section-gold' %}">
+            <div class="admin-app-section__overlay"></div>
+
+            <div class="admin-app-section__content">
+                <div class="admin-app-section__header">
+                    <div>
+                        <span class="admin-app-section__eyebrow">
+                            {{ app.models|length }} módulo{{ app.models|length|pluralize }}
+                        </span>
+                        <h2>
+                            {% if app.app_url %}
+                                <a href="{{ app.app_url }}" target="_blank" rel="noopener noreferrer">
+                                    {{ app.name }}
+                                </a>
+                            {% else %}
+                                {{ app.name }}
+                            {% endif %}
+                        </h2>
+                    </div>
                 </div>
-            </header>
 
-            <div class="admin-app-card__body">
-                {% for model in app.models %}
-                    <article class="admin-model-card">
-                        <div class="admin-model-card__info">
-                            <h3>
-                                {% if model.admin_url %}
-                                    <a href="{{ model.admin_url }}">{{ model.name }}</a>
-                                {% else %}
-                                    {{ model.name }}
+                <div class="admin-app-section__models">
+                    {% for model in app.models %}
+                        <article class="admin-model-panel">
+                            <div class="admin-model-panel__info">
+                                <h3>
+                                    {% if model.admin_url %}
+                                        <a href="{{ model.admin_url }}" target="_blank" rel="noopener noreferrer">
+                                            {{ model.name }}
+                                        </a>
+                                    {% else %}
+                                        {{ model.name }}
+                                    {% endif %}
+                                </h3>
+                                <p>Acceso directo a la gestión de {{ model.name|lower }}.</p>
+                            </div>
+
+                            <div class="admin-model-panel__actions">
+                                {% if model.add_url %}
+                                    <a href="{{ model.add_url }}" target="_blank" rel="noopener noreferrer" class="mini-chip mini-chip--light">
+                                        Añadir
+                                    </a>
                                 {% endif %}
-                            </h3>
-                        </div>
 
-                        <div class="admin-model-card__actions">
-                            {% if model.add_url %}
-                                <a href="{{ model.add_url }}" class="chip chip-add">
-                                    Añadir
-                                </a>
-                            {% endif %}
-
-                            {% if model.admin_url and show_changelinks %}
-                                <a href="{{ model.admin_url }}" class="chip chip-edit">
-                                    Modificar
-                                </a>
-                            {% endif %}
-                        </div>
-                    </article>
-                {% endfor %}
+                                {% if model.admin_url and show_changelinks %}
+                                    <a href="{{ model.admin_url }}" target="_blank" rel="noopener noreferrer" class="mini-chip mini-chip--dark">
+                                        Ver registros
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
             </div>
         </section>
     {% endfor %}
-</div>
 {% else %}
-<p>No tienes permisos para ver o editar nada.</p>
+    <p>No tienes permisos para ver o editar nada.</p>
 {% endif %}

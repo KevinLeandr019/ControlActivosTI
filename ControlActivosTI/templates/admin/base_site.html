@@ -1,0 +1,25 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}
+{% if subtitle %}{{ subtitle }} | {% endif %}ControlActivosTI Admin
+{% endblock %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'admin_custom/css/admin_theme.css' %}">
+{% endblock %}
+
+{% block branding %}
+<div class="brand-wrap">
+    <div class="brand-mark">CT</div>
+    <div class="brand-copy">
+        <h1 id="site-name">
+            <a href="{% url 'admin:index' %}">ControlActivosTI</a>
+        </h1>
+        <p class="brand-subtitle">ILSA · GRAFANDINA</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}

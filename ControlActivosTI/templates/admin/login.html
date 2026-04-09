@@ -1,32 +1,26 @@
 {% extends "admin/base_site.html" %}
 {% load i18n static %}
 
-{% block bodyclass %}{{ block.super }} login admin-modern-login{% endblock %}
+{% block bodyclass %}{{ block.super }} login admin-login-page{% endblock %}
 {% block nav-breadcrumbs %}{% endblock %}
 {% block content_title %}{% endblock %}
 
 {% block content %}
 <div class="admin-login-shell">
     <section class="admin-login-hero">
-        <span class="hero-pill">Plataforma interna</span>
-        <h1>Control de Activos TI</h1>
+        <span class="admin-login-hero__badge">Administración interna</span>
+        <h1>Bienvenido al panel de control</h1>
         <p>
-            Accede al módulo administrativo para gestionar catálogos, usuarios,
-            inventario, asignaciones y trazabilidad del sistema.
+            Accede al entorno administrativo para gestionar inventario, usuarios,
+            asignaciones y configuración general de la plataforma.
         </p>
-
-        <ul class="hero-points">
-            <li>Gestión centralizada</li>
-            <li>Operación interna segura</li>
-            <li>Consistencia con el dashboard</li>
-        </ul>
     </section>
 
     <section class="admin-login-card">
-        <div class="card-badge">Admin</div>
-        <h2>Bienvenido de nuevo</h2>
-        <p class="muted">
-            Ingresa con tus credenciales de administrador.
+        <div class="admin-login-card__tag">Admin</div>
+        <h2>Iniciar sesión</h2>
+        <p class="admin-login-card__subtitle">
+            Usa tus credenciales para ingresar al panel.
         </p>
 
         {% if form.errors and not form.non_field_errors %}
@@ -45,25 +39,11 @@
             <div class="form-row">
                 <label for="{{ form.username.id_for_label }}">Usuario</label>
                 {{ form.username }}
-                {% if form.username.errors %}
-                    <div class="field-errors">
-                        {% for error in form.username.errors %}
-                            <span>{{ error }}</span>
-                        {% endfor %}
-                    </div>
-                {% endif %}
             </div>
 
             <div class="form-row">
                 <label for="{{ form.password.id_for_label }}">Contraseña</label>
                 {{ form.password }}
-                {% if form.password.errors %}
-                    <div class="field-errors">
-                        {% for error in form.password.errors %}
-                            <span>{{ error }}</span>
-                        {% endfor %}
-                    </div>
-                {% endif %}
             </div>
 
             {% if next %}
@@ -74,10 +54,6 @@
                 <input type="submit" value="Entrar al admin">
             </div>
         </form>
-
-        <div class="admin-login-footer-note">
-            Acceso exclusivo para personal autorizado.
-        </div>
     </section>
 </div>
 {% endblock %}
