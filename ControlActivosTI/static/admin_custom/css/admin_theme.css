@@ -1,6 +1,5 @@
 /* =========================================================
    ControlActivosTI - Admin Theme
-   Reemplazo completo de admin_theme.css
    ========================================================= */
 
 :root {
@@ -27,7 +26,20 @@
     --shadow-lg: 0 24px 50px rgba(15, 23, 42, 0.14);
 
     --page-gap: 22px;
-    --content-max: 100%;
+}
+
+html[data-theme="dark"] {
+    --bg-page: #0b1120;
+    --bg-surface: #111827;
+    --bg-surface-soft: #0f172a;
+    --text-main: #e5eefb;
+    --text-soft: #b6c2d2;
+    --text-muted: #90a3b8;
+    --line-soft: rgba(148, 163, 184, 0.14);
+    --line-strong: rgba(148, 163, 184, 0.24);
+    --shadow-sm: 0 8px 20px rgba(0, 0, 0, 0.20);
+    --shadow-md: 0 18px 40px rgba(0, 0, 0, 0.28);
+    --shadow-lg: 0 24px 50px rgba(0, 0, 0, 0.38);
 }
 
 /* =========================================================
@@ -49,10 +61,6 @@ body {
 body {
     background: var(--bg-page);
     color: var(--text-main);
-}
-
-a {
-    transition: 0.2s ease;
 }
 
 #container {
@@ -210,8 +218,12 @@ div.breadcrumbs {
     color: var(--text-soft);
 }
 
+html[data-theme="dark"] div.breadcrumbs {
+    background: rgba(17, 24, 39, 0.72);
+}
+
 div.breadcrumbs a {
-    color: #8aa9d7;
+    color: var(--brand-1);
     text-decoration: none;
 }
 
@@ -297,17 +309,8 @@ div.breadcrumbs a {
 .admin-mosaic-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-auto-rows: auto;
     gap: 24px;
     align-items: start;
-}
-
-.tile-wide,
-.tile-medium,
-.tile-tall,
-.tile-auto,
-.tile-has-many {
-    grid-row: auto;
 }
 
 .admin-app-section {
@@ -366,9 +369,7 @@ div.breadcrumbs a {
 
 .admin-app-section h2 a {
     color: inherit;
-    text-decoration: underline;
-    text-underline-offset: 4px;
-    text-decoration-thickness: 3px;
+    text-decoration: none;
 }
 
 .admin-app-section__models {
@@ -376,7 +377,6 @@ div.breadcrumbs a {
     gap: 12px;
     align-content: start;
     overflow: visible;
-    padding-right: 0;
 }
 
 .models-standard {
@@ -555,6 +555,10 @@ div.breadcrumbs a {
     box-shadow: var(--shadow-md);
 }
 
+html[data-theme="dark"] .admin-recent-sticky {
+    background: linear-gradient(180deg, rgba(17,24,39,0.92), rgba(15,23,42,0.98));
+}
+
 .admin-recent-sticky__badge {
     display: inline-flex;
     padding: 7px 11px;
@@ -634,7 +638,7 @@ div.breadcrumbs a {
     padding: 10px 12px;
     border-radius: 14px;
     border: 1px solid var(--line-strong);
-    background: #fff;
+    background: var(--bg-surface);
     color: var(--text-main);
     box-shadow: var(--shadow-sm);
 }
@@ -749,6 +753,10 @@ select {
     box-shadow: var(--shadow-sm);
 }
 
+html[data-theme="dark"] .submit-row {
+    background: rgba(17,24,39,0.72);
+}
+
 .button,
 input[type=submit],
 input[type=button],
@@ -766,7 +774,7 @@ a.button {
 }
 
 #changelist table thead th {
-    background: #f8fafc;
+    background: var(--bg-surface-soft);
 }
 
 .selector {
@@ -787,6 +795,10 @@ a.button {
 
 .login {
     background: radial-gradient(circle at top, #e0ecff 0%, #f4f7fb 48%, #eef3fb 100%);
+}
+
+html[data-theme="dark"] .login {
+    background: radial-gradient(circle at top, #111827 0%, #0b1120 52%, #0f172a 100%);
 }
 
 .login #container {
@@ -826,13 +838,6 @@ a.button {
 /* =========================================================
    Responsive
    ========================================================= */
-
-@media (max-width: 1400px) {
-    .admin-mosaic-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        grid-auto-rows: auto;
-    }
-}
 
 @media (max-width: 1280px) {
     .admin-mosaic-shell {
@@ -918,15 +923,6 @@ a.button {
 
     .admin-mosaic-grid {
         grid-template-columns: 1fr;
-        grid-auto-rows: auto;
-    }
-
-    .tile-wide,
-    .tile-medium,
-    .tile-tall,
-    .tile-auto,
-    .tile-has-many {
-        grid-row: auto;
     }
 
     .admin-app-section {
@@ -935,10 +931,6 @@ a.button {
 
     .admin-app-section__content {
         padding: 20px;
-    }
-
-    .admin-app-section__models {
-        overflow: visible;
     }
 
     .admin-recent-sticky,

@@ -34,7 +34,6 @@
                                                 {{ model.name }}
                                             {% endif %}
                                         </h3>
-
                                         <p>Acceso directo a la gestión de {{ model.name|lower }}.</p>
                                     </div>
 
@@ -44,7 +43,6 @@
                                                 {% translate "Añadir" %}
                                             </a>
                                         {% endif %}
-
                                         {% if model.admin_url and show_changelinks %}
                                             <a class="mini-chip mini-chip--dark" href="{{ model.admin_url }}">
                                                 {% translate "Ver registros" %}
@@ -87,7 +85,6 @@
                                             {% translate "Añadir" %}
                                         </a>
                                     {% endif %}
-
                                     {% if model.admin_url and show_changelinks %}
                                         <a class="compact-chip compact-chip--dark" href="{{ model.admin_url }}">
                                             {% translate "Ver" %}
