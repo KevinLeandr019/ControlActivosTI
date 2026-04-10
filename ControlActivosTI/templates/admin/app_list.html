@@ -1,81 +1,106 @@
 {% load i18n %}
 
 {% if app_list %}
-<div class="admin-mosaic-grid">
-    {% for app in app_list %}
-        {% with total=app.models|length %}
-        <section class="admin-app-section
-            {% cycle 'section-pink' 'section-cyan' 'section-dark' 'section-orange' 'section-white' 'section-gold' %}
-            {% if total >= 5 %}
-                tile-dense
-            {% elif forloop.counter == 1 %}
-                tile-wide
-            {% elif forloop.counter == 2 %}
-                tile-tall
-            {% elif forloop.counter == 3 %}
-                tile-medium
-            {% elif forloop.counter == 4 %}
-                tile-tall
-            {% else %}
-                tile-auto
-            {% endif %}
-        ">
-            <div class="admin-app-section__overlay"></div>
+    {% if dashboard_mode %}
+        <div class="admin-mosaic-grid">
+            {% for app in app_list %}
+                {% cycle 'section-dark' 'section-cyan' 'section-orange' 'section-pink' 'section-white' 'section-gold' as palette silent %}
+                <section class="admin-app-section {{ palette }}">
+                    <div class="admin-app-section__overlay"></div>
 
-            <div class="admin-app-section__content">
-                <div class="admin-app-section__header">
-                    <span class="admin-app-section__eyebrow">
-                        {{ total }} módulo{{ total|pluralize }}
-                    </span>
+                    <div class="admin-app-section__content">
+                        <header class="admin-app-section__header">
+                            <span class="admin-app-section__eyebrow">
+                                {{ app.models|length }} módulo{{ app.models|length|pluralize }}
+                            </span>
 
-                    <h2>
+                            <h2>
+                                {% if app.app_url %}
+                                    <a href="{{ app.app_url }}">{{ app.name }}</a>
+                                {% else %}
+                                    {{ app.name }}
+                                {% endif %}
+                            </h2>
+                        </header>
+
+                        <div class="admin-app-section__models {% if app.models|length > 4 %}models-dense{% else %}models-standard{% endif %}">
+                            {% for model in app.models %}
+                                <article class="admin-model-panel">
+                                    <div class="admin-model-panel__info">
+                                        <h3>
+                                            {% if model.admin_url %}
+                                                <a href="{{ model.admin_url }}">{{ model.name }}</a>
+                                            {% else %}
+                                                {{ model.name }}
+                                            {% endif %}
+                                        </h3>
+
+                                        <p>Acceso directo a la gestión de {{ model.name|lower }}.</p>
+                                    </div>
+
+                                    <div class="admin-model-panel__actions">
+                                        {% if model.add_url %}
+                                            <a class="mini-chip mini-chip--light" href="{{ model.add_url }}">
+                                                {% translate "Añadir" %}
+                                            </a>
+                                        {% endif %}
+
+                                        {% if model.admin_url and show_changelinks %}
+                                            <a class="mini-chip mini-chip--dark" href="{{ model.admin_url }}">
+                                                {% translate "Ver registros" %}
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </section>
+            {% endfor %}
+        </div>
+    {% else %}
+        <nav class="admin-compact-nav">
+            {% for app in app_list %}
+                <section class="admin-compact-app">
+                    <h3 class="admin-compact-app__title">
                         {% if app.app_url %}
-                            <a href="{{ app.app_url }}" target="_blank" rel="noopener noreferrer">
-                                {{ app.name }}
-                            </a>
+                            <a href="{{ app.app_url }}">{{ app.name }}</a>
                         {% else %}
                             {{ app.name }}
                         {% endif %}
-                    </h2>
-                </div>
+                    </h3>
 
-                <div class="admin-app-section__models {% if total >= 5 %}models-dense{% elif total == 1 %}models-single{% else %}models-multi{% endif %}">
-                    {% for model in app.models %}
-                        <article class="admin-model-panel">
-                            <div class="admin-model-panel__info">
-                                <h3>
+                    <ul class="admin-compact-models">
+                        {% for model in app.models %}
+                            <li class="admin-compact-model">
+                                <div class="admin-compact-model__main">
                                     {% if model.admin_url %}
-                                        <a href="{{ model.admin_url }}" target="_blank" rel="noopener noreferrer">
-                                            {{ model.name }}
-                                        </a>
+                                        <a class="admin-compact-link" href="{{ model.admin_url }}">{{ model.name }}</a>
                                     {% else %}
-                                        {{ model.name }}
+                                        <span class="admin-compact-link">{{ model.name }}</span>
                                     {% endif %}
-                                </h3>
-                                <p>Acceso directo a la gestión de {{ model.name|lower }}.</p>
-                            </div>
+                                </div>
 
-                            <div class="admin-model-panel__actions">
-                                {% if model.add_url %}
-                                    <a href="{{ model.add_url }}" target="_blank" rel="noopener noreferrer" class="mini-chip mini-chip--light">
-                                        Añadir
-                                    </a>
-                                {% endif %}
+                                <div class="admin-compact-actions">
+                                    {% if model.add_url %}
+                                        <a class="compact-chip compact-chip--light" href="{{ model.add_url }}">
+                                            {% translate "Añadir" %}
+                                        </a>
+                                    {% endif %}
 
-                                {% if model.admin_url and show_changelinks %}
-                                    <a href="{{ model.admin_url }}" target="_blank" rel="noopener noreferrer" class="mini-chip mini-chip--dark">
-                                        Ver registros
-                                    </a>
-                                {% endif %}
-                            </div>
-                        </article>
-                    {% endfor %}
-                </div>
-            </div>
-        </section>
-        {% endwith %}
-    {% endfor %}
-</div>
+                                    {% if model.admin_url and show_changelinks %}
+                                        <a class="compact-chip compact-chip--dark" href="{{ model.admin_url }}">
+                                            {% translate "Ver" %}
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            {% endfor %}
+        </nav>
+    {% endif %}
 {% else %}
-<p>No tienes permisos para ver o editar nada.</p>
+    <p class="admin-empty-state">{% translate "No tienes permisos para ver o editar nada." %}</p>
 {% endif %}

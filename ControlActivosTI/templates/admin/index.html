@@ -7,9 +7,9 @@
 
 {% block content %}
 <div class="admin-mosaic-shell">
-    <section class="admin-mosaic-main">
+    <div class="admin-mosaic-main">
         <section class="admin-mosaic-hero">
-            <div class="admin-mosaic-hero__badge">Panel administrativo</div>
+            <span class="admin-mosaic-hero__badge">Panel administrativo</span>
             <h1>Control central de la plataforma</h1>
             <p>
                 Gestiona inventario, asignaciones, usuarios, configuración y catálogos
@@ -17,18 +17,19 @@
             </p>
         </section>
 
-        {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
-    </section>
+        {% include "admin/app_list.html" with app_list=app_list show_changelinks=True dashboard_mode=True %}
+    </div>
 
     <aside class="admin-mosaic-side">
-        <div class="admin-recent-sticky">
+        <section class="admin-recent-sticky">
             <div class="admin-recent-sticky__header">
-                <span class="admin-recent-sticky__badge">{% translate 'Actividad' %}</span>
-                <h2>{% translate 'Acciones recientes' %}</h2>
-                <p>{% translate 'Tus últimos movimientos dentro del panel.' %}</p>
+                <span class="admin-recent-sticky__badge">{% translate "Actividad" %}</span>
+                <h2>{% translate "Acciones recientes" %}</h2>
+                <p>{% translate "Tus últimos movimientos dentro del panel." %}</p>
             </div>
 
             {% get_admin_log 10 as admin_log for_user user %}
+
             {% if admin_log %}
                 <div class="admin-recent-sticky__list">
                     {% for entry in admin_log %}
@@ -37,25 +38,23 @@
                                 {% if entry.is_deletion or not entry.get_admin_url %}
                                     {{ entry.object_repr }}
                                 {% else %}
-                                    <a href="{{ entry.get_admin_url }}" target="_blank" rel="noopener noreferrer">
-                                        {{ entry.object_repr }}
-                                    </a>
+                                    <a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
                                 {% endif %}
                             </div>
                             <div class="admin-recent-card__meta">
                                 {% if entry.content_type %}
                                     {{ entry.content_type|capfirst }}
                                 {% else %}
-                                    {% translate 'Objeto desconocido' %}
+                                    {% translate "Objeto desconocido" %}
                                 {% endif %}
                             </div>
                         </article>
                     {% endfor %}
                 </div>
             {% else %}
-                <div class="admin-recent-empty">{% translate 'Ninguno disponible' %}</div>
+                <p class="admin-recent-empty">{% translate "Ninguno disponible" %}</p>
             {% endif %}
-        </div>
+        </section>
     </aside>
 </div>
 {% endblock %}
