@@ -1,59 +1,58 @@
 {% extends "base.html" %}
-
 {% block title %}Nueva asignación - ControlActivosTI{% endblock %}
 {% block page_title %}Nueva asignación{% endblock %}
-
 {% block content %}
-<div class="max-w-3xl bg-white rounded-2xl shadow p-6">
-    <form method="post" class="space-y-5">
-        {% csrf_token %}
+<form method="post" class="space-y-6">
+    {% csrf_token %}
 
-        <div>
-            <label class="block mb-2 font-medium">Colaborador</label>
-            {{ form.colaborador }}
-            {% if form.colaborador.errors %}
-                <p class="text-red-600 text-sm mt-1">{{ form.colaborador.errors|join:", " }}</p>
-            {% endif %}
-        </div>
-
-        <div>
-            <label class="block mb-2 font-medium">Activo</label>
-            {{ form.activo }}
-            {% if form.activo.errors %}
-                <p class="text-red-600 text-sm mt-1">{{ form.activo.errors|join:", " }}</p>
-            {% endif %}
-        </div>
-
-        <div>
-            <label class="block mb-2 font-medium">Fecha de asignación</label>
-            {{ form.fecha_asignacion }}
-            {% if form.fecha_asignacion.errors %}
-                <p class="text-red-600 text-sm mt-1">{{ form.fecha_asignacion.errors|join:", " }}</p>
-            {% endif %}
-        </div>
-
-        <div>
-            <label class="block mb-2 font-medium">Observaciones de entrega</label>
-            {{ form.observaciones_entrega }}
-            {% if form.observaciones_entrega.errors %}
-                <p class="text-red-600 text-sm mt-1">{{ form.observaciones_entrega.errors|join:", " }}</p>
-            {% endif %}
-        </div>
-
-        {% if form.non_field_errors %}
-            <div class="px-4 py-3 rounded-lg bg-red-100 text-red-700 border border-red-200">
-                {{ form.non_field_errors }}
-            </div>
+    <div>
+        <label class="mb-2 block text-sm font-semibold text-slate-700">Colaborador</label>
+        {{ form.colaborador }}
+        {% if form.colaborador.errors %}
+            <p class="mt-2 text-sm text-red-600">{{ form.colaborador.errors|join:", " }}</p>
         {% endif %}
+    </div>
 
-        <div class="flex gap-3">
-            <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800">
-                Guardar asignación
-            </button>
-            <a href="{% url 'asignaciones:lista' %}" class="px-4 py-2 bg-slate-200 rounded-lg hover:bg-slate-300">
-                Cancelar
-            </a>
+    <div>
+        <label class="mb-2 block text-sm font-semibold text-slate-700">Activos</label>
+        {{ form.activos }}
+        {% if form.activos.help_text %}
+            <p class="mt-2 text-xs text-slate-500">{{ form.activos.help_text }}</p>
+        {% endif %}
+        {% if form.activos.errors %}
+            <p class="mt-2 text-sm text-red-600">{{ form.activos.errors|join:", " }}</p>
+        {% endif %}
+    </div>
+
+    <div>
+        <label class="mb-2 block text-sm font-semibold text-slate-700">Fecha de asignación</label>
+        {{ form.fecha_asignacion }}
+        {% if form.fecha_asignacion.errors %}
+            <p class="mt-2 text-sm text-red-600">{{ form.fecha_asignacion.errors|join:", " }}</p>
+        {% endif %}
+    </div>
+
+    <div>
+        <label class="mb-2 block text-sm font-semibold text-slate-700">Observaciones de entrega</label>
+        {{ form.observaciones_entrega }}
+        {% if form.observaciones_entrega.errors %}
+            <p class="mt-2 text-sm text-red-600">{{ form.observaciones_entrega.errors|join:", " }}</p>
+        {% endif %}
+    </div>
+
+    {% if form.non_field_errors %}
+        <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {{ form.non_field_errors }}
         </div>
-    </form>
-</div>
+    {% endif %}
+
+    <div class="flex items-center gap-3">
+        <button type="submit" class="rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-cyan-700">
+            Guardar asignación
+        </button>
+        <a href="{% url 'asignaciones:lista' %}" class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+            Cancelar
+        </a>
+    </div>
+</form>
 {% endblock %}

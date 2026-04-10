@@ -1,100 +1,97 @@
 {% extends "base.html" %}
-
 {% block title %}Registrar devolución - ControlActivosTI{% endblock %}
 {% block page_title %}Registrar devolución{% endblock %}
-
 {% block content %}
-<div class="space-y-6">
-    <div class="grid gap-6 lg:grid-cols-3">
-        <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-slate-900">Resumen</h3>
-
-            <div class="mt-6 space-y-4 text-sm">
-                <div>
-                    <p class="font-semibold text-slate-800">Activo</p>
-                    <p class="mt-1 text-slate-600">{{ object.activo.codigo }}</p>
-                </div>
-
-                <div>
-                    <p class="font-semibold text-slate-800">Colaborador</p>
-                    <p class="mt-1 text-slate-600">{{ object.colaborador }}</p>
-                </div>
-
-                <div>
-                    <p class="font-semibold text-slate-800">Fecha asignación</p>
-                    <p class="mt-1 text-slate-600">{{ object.fecha_asignacion }}</p>
-                </div>
-
-                <div>
-                    <p class="font-semibold text-slate-800">Responsable</p>
-                    <p class="mt-1 text-slate-600">{{ object.usuario_responsable }}</p>
-                </div>
-            </div>
-        </section>
-
-        <section class="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <form method="post" class="space-y-6">
-                {% csrf_token %}
-
-                {% if form.non_field_errors %}
-                    <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                        {{ form.non_field_errors }}
-                    </div>
-                {% endif %}
-
-                <div>
-                    <label for="{{ form.fecha_devolucion.id_for_label }}" class="mb-2 block text-sm font-semibold text-slate-800">
-                        Fecha de devolución
-                    </label>
-                    {{ form.fecha_devolucion }}
-                    {% if form.fecha_devolucion.errors %}
-                        <div class="mt-2 text-sm text-rose-600">
-                            {{ form.fecha_devolucion.errors|join:", " }}
-                        </div>
-                    {% endif %}
-                </div>
-
-                <div>
-                    <label for="{{ form.estado_activo_devolucion.id_for_label }}" class="mb-2 block text-sm font-semibold text-slate-800">
-                        Estado final del activo
-                    </label>
-                    {{ form.estado_activo_devolucion }}
-                    {% if form.estado_activo_devolucion.errors %}
-                        <div class="mt-2 text-sm text-rose-600">
-                            {{ form.estado_activo_devolucion.errors|join:", " }}
-                        </div>
-                    {% endif %}
-                </div>
-
-                <div>
-                    <label for="{{ form.observaciones_devolucion.id_for_label }}" class="mb-2 block text-sm font-semibold text-slate-800">
-                        Observaciones de devolución
-                    </label>
-                    {{ form.observaciones_devolucion }}
-                    {% if form.observaciones_devolucion.errors %}
-                        <div class="mt-2 text-sm text-rose-600">
-                            {{ form.observaciones_devolucion.errors|join:", " }}
-                        </div>
-                    {% endif %}
-                </div>
-
-                <div class="flex flex-wrap gap-3 pt-2">
-                    <button
-                        type="submit"
-                        class="inline-flex items-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-                    >
-                        Guardar devolución
-                    </button>
-
-                    <a
-                        href="{% url 'asignaciones:lista' %}"
-                        class="inline-flex items-center rounded-xl bg-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-300"
-                    >
-                        Cancelar
-                    </a>
-                </div>
-            </form>
-        </section>
+<div class="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <h3 class="text-lg font-semibold text-slate-900">Resumen de la asignación</h3>
+    <div class="mt-4 grid gap-4 md:grid-cols-2">
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Código</p>
+            <p class="mt-1 text-sm text-slate-800">{{ object.codigo_asignacion }}</p>
+        </div>
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Colaborador</p>
+            <p class="mt-1 text-sm text-slate-800">{{ object.colaborador }}</p>
+        </div>
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Fecha de asignación</p>
+            <p class="mt-1 text-sm text-slate-800">{{ object.fecha_asignacion }}</p>
+        </div>
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Responsable</p>
+            <p class="mt-1 text-sm text-slate-800">{{ object.usuario_responsable }}</p>
+        </div>
     </div>
 </div>
+
+<form method="post" class="space-y-6">
+    {% csrf_token %}
+    {{ formset.management_form }}
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 class="text-lg font-semibold text-slate-900">Datos generales de la devolución</h3>
+        <div class="mt-4 grid gap-6 md:grid-cols-2">
+            <div>
+                <label class="mb-2 block text-sm font-semibold text-slate-700">Fecha de devolución</label>
+                {{ form.fecha_devolucion }}
+                {% if form.fecha_devolucion.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.fecha_devolucion.errors|join:", " }}</p>
+                {% endif %}
+            </div>
+            <div class="md:col-span-2">
+                <label class="mb-2 block text-sm font-semibold text-slate-700">Observaciones generales</label>
+                {{ form.observaciones_devolucion }}
+                {% if form.observaciones_devolucion.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.observaciones_devolucion.errors|join:", " }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 class="text-lg font-semibold text-slate-900">Estado final por activo</h3>
+        <div class="mt-4 space-y-4">
+            {% for detalle_form in formset %}
+                <div class="rounded-xl border border-slate-200 p-4">
+                    {{ detalle_form.id }}
+                    <div class="mb-4">
+                        <p class="text-sm font-semibold text-slate-900">{{ detalle_form.instance.activo.codigo }} - {{ detalle_form.instance.activo.marca }} {{ detalle_form.instance.activo.modelo }}</p>
+                        <p class="text-xs text-slate-500">{{ detalle_form.instance.articulo_acta }}</p>
+                    </div>
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div>
+                            <label class="mb-2 block text-sm font-semibold text-slate-700">Estado final</label>
+                            {{ detalle_form.estado_activo_devolucion }}
+                            {% if detalle_form.estado_activo_devolucion.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ detalle_form.estado_activo_devolucion.errors|join:", " }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label class="mb-2 block text-sm font-semibold text-slate-700">Observaciones</label>
+                            {{ detalle_form.observaciones_devolucion }}
+                            {% if detalle_form.observaciones_devolucion.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ detalle_form.observaciones_devolucion.errors|join:", " }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if form.non_field_errors or formset.non_form_errors %}
+        <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {{ form.non_field_errors }} {{ formset.non_form_errors }}
+        </div>
+    {% endif %}
+
+    <div class="flex items-center gap-3">
+        <button type="submit" class="rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-cyan-700">
+            Guardar devolución
+        </button>
+        <a href="{% url 'asignaciones:lista' %}" class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+            Cancelar
+        </a>
+    </div>
+</form>
 {% endblock %}
