@@ -5,211 +5,244 @@
 
 {% block content %}
 <div class="space-y-6">
-    <div class="flex items-center justify-between">
-        <a
-            href="{% url 'colaboradores:lista' %}"
-            class="inline-flex items-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-        >
-            ← Volver a colaboradores
-        </a>
+
+  <div class="flex items-center justify-between">
+    <a
+      href="{% url 'colaboradores:lista' %}"
+      class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+    >
+      ← Volver a colaboradores
+    </a>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-3">
+    <div class="lg:col-span-2 rounded-2xl bg-white p-6 shadow">
+      <h3 class="mb-5 text-lg font-semibold text-slate-900">Información general</h3>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <p class="text-sm text-slate-500">Nombres</p>
+          <p class="font-medium text-slate-900">{{ colaborador.nombres }}</p>
+        </div>
+
+        <div>
+          <p class="text-sm text-slate-500">Apellidos</p>
+          <p class="font-medium text-slate-900">{{ colaborador.apellidos }}</p>
+        </div>
+
+        <div>
+          <p class="text-sm text-slate-500">Cédula</p>
+          <p class="font-medium text-slate-900">{{ colaborador.cedula }}</p>
+        </div>
+
+        <div>
+          <p class="text-sm text-slate-500">Correo corporativo</p>
+          <p class="font-medium text-slate-900">{{ colaborador.correo_corporativo|default:"-" }}</p>
+        </div>
+
+        <div>
+          <p class="text-sm text-slate-500">Empresa</p>
+          <p class="font-medium text-slate-900">{{ colaborador.empresa|default:"-" }}</p>
+        </div>
+
+        <div>
+          <p class="text-sm text-slate-500">Área</p>
+          <p class="font-medium text-slate-900">{{ colaborador.area|default:"-" }}</p>
+        </div>
+
+        <div>
+          <p class="text-sm text-slate-500">Cargo</p>
+          <p class="font-medium text-slate-900">{{ colaborador.cargo|default:"-" }}</p>
+        </div>
+
+        <div>
+          <p class="text-sm text-slate-500">Ubicación</p>
+          <p class="font-medium text-slate-900">{{ colaborador.ubicacion|default:"-" }}</p>
+        </div>
+
+        <div>
+          <p class="text-sm text-slate-500">Estado</p>
+          <p class="font-medium text-slate-900">{{ colaborador.estado }}</p>
+        </div>
+
+        <div>
+          <p class="text-sm text-slate-500">Fecha de ingreso</p>
+          <p class="font-medium text-slate-900">{{ colaborador.fecha_ingreso|default:"-" }}</p>
+        </div>
+      </div>
+
+      <div class="mt-5">
+        <p class="text-sm text-slate-500">Observaciones</p>
+        <p class="mt-1 text-slate-700">{{ colaborador.observaciones|default:"Sin observaciones." }}</p>
+      </div>
     </div>
 
-    <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 class="text-lg font-semibold text-slate-900">Información general</h3>
+    <div class="space-y-4">
+      <div class="rounded-2xl bg-white p-6 shadow">
+        <p class="text-sm text-slate-500">Activos asignados actualmente</p>
+        <p class="mt-2 text-3xl font-bold text-slate-900">{{ total_activos_asignados }}</p>
+      </div>
 
-        <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Nombres y apellidos</p>
-                <p class="mt-1 text-sm text-slate-900">{{ colaborador.nombres }} {{ colaborador.apellidos }}</p>
-            </div>
+      <div class="rounded-2xl bg-white p-6 shadow">
+        <p class="text-sm text-slate-500">Valor total asignado</p>
+        <p class="mt-2 text-3xl font-bold text-slate-900">
+          ${{ valor_total_activos_asignados|floatformat:2 }}
+        </p>
+      </div>
 
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Cédula</p>
-                <p class="mt-1 text-sm text-slate-900">{{ colaborador.cedula }}</p>
-            </div>
+      <div class="rounded-2xl bg-white p-6 shadow">
+        <p class="text-sm text-slate-500">Puede generar acta</p>
+        <p class="mt-2 text-lg font-semibold text-slate-900">
+          {% if puede_generar_acta %}Sí{% else %}No{% endif %}
+        </p>
+      </div>
+    </div>
+  </div>
 
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Correo</p>
-                <p class="mt-1 text-sm text-slate-900">{{ colaborador.correo_corporativo }}</p>
-            </div>
+  <div class="rounded-2xl bg-white p-6 shadow">
+    <div class="mb-4 flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-slate-900">Activos actualmente asignados</h3>
+      <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+        {{ total_activos_asignados }} activo{{ total_activos_asignados|pluralize }}
+      </span>
+    </div>
 
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Empresa</p>
-                <p class="mt-1 text-sm text-slate-900">{{ colaborador.empresa|default:"-" }}</p>
-            </div>
+    {% if detalles_activos_actuales %}
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+          <thead class="bg-slate-50">
+            <tr>
+              <th class="px-4 py-3 text-left font-semibold text-slate-600">Asignación</th>
+              <th class="px-4 py-3 text-left font-semibold text-slate-600">Código</th>
+              <th class="px-4 py-3 text-left font-semibold text-slate-600">Artículo</th>
+              <th class="px-4 py-3 text-left font-semibold text-slate-600">Equipo</th>
+              <th class="px-4 py-3 text-left font-semibold text-slate-600">Valor</th>
+              <th class="px-4 py-3 text-left font-semibold text-slate-600">Estado</th>
+              <th class="px-4 py-3 text-left font-semibold text-slate-600">Características</th>
+              <th class="px-4 py-3 text-left font-semibold text-slate-600">Observaciones</th>
+              <th class="px-4 py-3 text-left font-semibold text-slate-600">Foto</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for detalle in detalles_activos_actuales %}
+              <tr class="align-top">
+                <td class="px-4 py-4 font-medium text-slate-900">
+                  {{ detalle.asignacion.codigo_asignacion }}
+                </td>
 
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Área</p>
-                <p class="mt-1 text-sm text-slate-900">{{ colaborador.area }}</p>
-            </div>
+                <td class="px-4 py-4 text-slate-700">
+                  <a
+                    href="{% url 'activos:detalle' detalle.activo.pk %}"
+                    class="font-medium text-cyan-700 hover:underline"
+                  >
+                    {{ detalle.activo.codigo }}
+                  </a>
+                </td>
 
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Cargo</p>
-                <p class="mt-1 text-sm text-slate-900">{{ colaborador.cargo }}</p>
-            </div>
+                <td class="px-4 py-4 text-slate-700">
+                  {{ detalle.articulo_acta }}
+                </td>
 
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Ubicación</p>
-                <p class="mt-1 text-sm text-slate-900">{{ colaborador.ubicacion|default:"-" }}</p>
-            </div>
+                <td class="px-4 py-4 text-slate-700">
+                  {{ detalle.activo.marca }} {{ detalle.activo.modelo }}
+                </td>
 
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Estado</p>
-                <p class="mt-1 text-sm text-slate-900">{{ colaborador.estado }}</p>
-            </div>
+                <td class="px-4 py-4 text-slate-700">
+                  {% if detalle.activo.valor %}
+                    ${{ detalle.activo.valor|floatformat:2 }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
 
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Fecha de ingreso</p>
-                <p class="mt-1 text-sm text-slate-900">{{ colaborador.fecha_ingreso }}</p>
-            </div>
-        </div>
+                <td class="px-4 py-4 text-slate-700">
+                  {{ detalle.activo.estado_activo }}
+                </td>
 
-        <div class="mt-5">
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Observaciones</p>
-            <p class="mt-1 text-sm text-slate-900">
-                {{ colaborador.observaciones|default:"Sin observaciones." }}
-            </p>
-        </div>
-    </section>
+                <td class="px-4 py-4 text-slate-700">
+                  {{ detalle.caracteristicas_acta }}
+                </td>
 
-    <section class="grid gap-4 md:grid-cols-3">
-        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Activos asignados</p>
-            <p class="mt-2 text-2xl font-bold text-slate-900">{{ total_activos_asignados }}</p>
-        </div>
+                <td class="px-4 py-4 text-slate-700">
+                  {{ detalle.observaciones_acta }}
+                </td>
 
-        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:col-span-2">
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Valor referencial total</p>
-            <p class="mt-2 text-2xl font-bold text-slate-900">
-                ${{ valor_total_activos_asignados|floatformat:2 }}
-            </p>
-        </div>
-    </section>
+                <td class="px-4 py-4">
+                  {% if detalle.foto_principal %}
+                    <img
+                      src="{{ detalle.foto_principal.imagen.url }}"
+                      alt="Foto del activo {{ detalle.activo.codigo }}"
+                      class="h-24 w-24 rounded-lg border border-slate-200 object-cover"
+                    >
+                  {% else %}
+                    <span class="text-slate-400">Sin foto</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="rounded-xl border border-dashed border-slate-300 px-6 py-10 text-center text-slate-500">
+        Este colaborador no tiene activos asignados actualmente.
+      </div>
+    {% endif %}
+  </div>
 
-    <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div class="flex items-center justify-between">
-            <div>
-                <h3 class="text-lg font-semibold text-slate-900">Activos actualmente asignados</h3>
-                <p class="mt-1 text-sm text-slate-500">
-                    Esta tabla ya deja listos los campos que luego alimentarán el acta.
-                </p>
-            </div>
+  <div class="rounded-2xl bg-white p-6 shadow">
+    <h3 class="mb-4 text-lg font-semibold text-slate-900">Historial de asignaciones</h3>
 
-            {% if puede_generar_acta %}
-                <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                    Base lista para acta
-                </span>
-            {% endif %}
-        </div>
+    {% if historial_asignaciones %}
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+          <thead class="bg-slate-50">
+            <tr>
+              <th class="px-4 py-3 text-left font-semibold text-slate-600">Asignación</th>
+              <th class="px-4 py-3 text-left font-semibold text-slate-600">Activo</th>
+              <th class="px-4 py-3 text-left font-semibold text-slate-600">Fecha asignación</th>
+              <th class="px-4 py-3 text-left font-semibold text-slate-600">Estado asignación</th>
+              <th class="px-4 py-3 text-left font-semibold text-slate-600">Fecha devolución</th>
+              <th class="px-4 py-3 text-left font-semibold text-slate-600">Estado final activo</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for detalle in historial_asignaciones %}
+              <tr>
+                <td class="px-4 py-4 text-slate-700">
+                  {{ detalle.asignacion.codigo_asignacion }}
+                </td>
 
-        {% if asignaciones_activas %}
-            <div class="mt-5 overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-slate-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left font-semibold text-slate-700">Código asignación</th>
-                            <th class="px-4 py-3 text-left font-semibold text-slate-700">Código activo</th>
-                            <th class="px-4 py-3 text-left font-semibold text-slate-700">Artículo</th>
-                            <th class="px-4 py-3 text-left font-semibold text-slate-700">Marca / Modelo</th>
-                            <th class="px-4 py-3 text-left font-semibold text-slate-700">Valor</th>
-                            <th class="px-4 py-3 text-left font-semibold text-slate-700">Estado</th>
-                            <th class="px-4 py-3 text-left font-semibold text-slate-700">Características</th>
-                            <th class="px-4 py-3 text-left font-semibold text-slate-700">Observaciones</th>
-                            <th class="px-4 py-3 text-left font-semibold text-slate-700">Fotografía</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 bg-white">
-                        {% for asignacion in asignaciones_activas %}
-                            <tr class="align-top">
-                                <td class="px-4 py-4 font-medium text-slate-900">
-                                    {{ asignacion.codigo_asignacion }}
-                                </td>
-                                <td class="px-4 py-4 text-slate-700">
-                                    <a
-                                        href="{% url 'activos:detalle' asignacion.activo.pk %}"
-                                        class="font-medium text-cyan-700 hover:underline"
-                                    >
-                                        {{ asignacion.activo.codigo }}
-                                    </a>
-                                </td>
-                                <td class="px-4 py-4 text-slate-700">{{ asignacion.articulo_acta }}</td>
-                                <td class="px-4 py-4 text-slate-700">
-                                    {{ asignacion.activo.marca }} {{ asignacion.activo.modelo }}
-                                </td>
-                                <td class="px-4 py-4 text-slate-700">
-                                    {% if asignacion.activo.valor %}
-                                        ${{ asignacion.activo.valor }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                                <td class="px-4 py-4 text-slate-700">{{ asignacion.activo.estado_activo }}</td>
-                                <td class="px-4 py-4 text-slate-700">
-                                    {{ asignacion.caracteristicas_acta }}
-                                </td>
-                                <td class="px-4 py-4 text-slate-700">
-                                    {{ asignacion.observaciones_acta }}
-                                </td>
-                                <td class="px-4 py-4">
-                                    {% if asignacion.foto_principal %}
-                                        <img
-                                            src="{{ asignacion.foto_principal.imagen.url }}"
-                                            alt="Foto del activo {{ asignacion.activo.codigo }}"
-                                            class="h-24 w-24 rounded-lg border border-slate-200 object-cover"
-                                        >
-                                    {% else %}
-                                        <span class="text-slate-400">Sin foto</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <div class="mt-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
-                Este colaborador no tiene activos asignados actualmente.
-            </div>
-        {% endif %}
-    </section>
+                <td class="px-4 py-4 text-slate-700">
+                  {{ detalle.activo.codigo }} - {{ detalle.activo.marca }} {{ detalle.activo.modelo }}
+                </td>
 
-    <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 class="text-lg font-semibold text-slate-900">Historial de asignaciones</h3>
+                <td class="px-4 py-4 text-slate-700">
+                  {{ detalle.asignacion.fecha_asignacion }}
+                </td>
 
-        {% if historial_asignaciones %}
-            <div class="mt-5 overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-slate-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left font-semibold text-slate-700">Código</th>
-                            <th class="px-4 py-3 text-left font-semibold text-slate-700">Activo</th>
-                            <th class="px-4 py-3 text-left font-semibold text-slate-700">Fecha asignación</th>
-                            <th class="px-4 py-3 text-left font-semibold text-slate-700">Estado</th>
-                            <th class="px-4 py-3 text-left font-semibold text-slate-700">Fecha devolución</th>
-                            <th class="px-4 py-3 text-left font-semibold text-slate-700">Estado final</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 bg-white">
-                        {% for asignacion in historial_asignaciones %}
-                            <tr>
-                                <td class="px-4 py-4 text-slate-700">{{ asignacion.codigo_asignacion }}</td>
-                                <td class="px-4 py-4 text-slate-700">
-                                    {{ asignacion.activo.codigo }} - {{ asignacion.activo.marca }} {{ asignacion.activo.modelo }}
-                                </td>
-                                <td class="px-4 py-4 text-slate-700">{{ asignacion.fecha_asignacion }}</td>
-                                <td class="px-4 py-4 text-slate-700">{{ asignacion.estado_asignacion }}</td>
-                                <td class="px-4 py-4 text-slate-700">{{ asignacion.fecha_devolucion|default:"-" }}</td>
-                                <td class="px-4 py-4 text-slate-700">{{ asignacion.estado_activo_devolucion|default:"-" }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <div class="mt-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
-                No hay historial de asignaciones para este colaborador.
-            </div>
-        {% endif %}
-    </section>
+                <td class="px-4 py-4 text-slate-700">
+                  {{ detalle.asignacion.estado_asignacion }}
+                </td>
+
+                <td class="px-4 py-4 text-slate-700">
+                  {{ detalle.asignacion.fecha_devolucion|default:"-" }}
+                </td>
+
+                <td class="px-4 py-4 text-slate-700">
+                  {{ detalle.estado_activo_devolucion|default:"-" }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="rounded-xl border border-dashed border-slate-300 px-6 py-10 text-center text-slate-500">
+        No hay historial de asignaciones para este colaborador.
+      </div>
+    {% endif %}
+  </div>
+
 </div>
 {% endblock %}

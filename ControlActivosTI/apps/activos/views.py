@@ -2,7 +2,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Prefetch, Q
 from django.views.generic import DetailView, ListView
 
-from apps.asignaciones.models import Asignacion
+from apps.asignaciones.models import AsignacionDetalle
 
 from .models import Activo, EventoActivo, FotoActivo
 
@@ -55,10 +55,10 @@ class ActivoListView(LoginRequiredMixin, ListView):
         busqueda = self.request.GET.get("q", "").strip()
         if busqueda:
             queryset = queryset.filter(
-                Q(codigo__icontains=busqueda) |
-                Q(marca__icontains=busqueda) |
-                Q(modelo__icontains=busqueda) |
-                Q(serie__icontains=busqueda)
+                Q(codigo__icontains=busqueda)
+                | Q(marca__icontains=busqueda)
+                | Q(modelo__icontains=busqueda)
+                | Q(serie__icontains=busqueda)
             )
 
         return queryset
@@ -92,13 +92,14 @@ class ActivoDetailView(LoginRequiredMixin, DetailView):
                     ).order_by("-fecha_evento", "-id"),
                 ),
                 Prefetch(
-                    "asignaciones",
-                    queryset=Asignacion.objects.select_related(
-                        "colaborador",
-                        "usuario_responsable",
-                        "usuario_recepcion",
+                    "detalles_asignacion",
+                    queryset=AsignacionDetalle.objects.select_related(
+                        "asignacion",
+                        "asignacion__colaborador",
+                        "asignacion__usuario_responsable",
+                        "asignacion__usuario_recepcion",
                         "estado_activo_devolucion",
-                    ).order_by("-fecha_asignacion", "-id"),
+                    ).order_by("-asignacion__fecha_asignacion", "-id"),
                 ),
             )
         )
@@ -107,16 +108,14 @@ class ActivoDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         activo = self.object
 
-        asignaciones = list(activo.asignaciones.all())
-        context["asignacion_activa"] = next(
-            (
-                asignacion
-                for asignacion in asignaciones
-                if asignacion.estado_asignacion == Asignacion.EstadoAsignacion.ACTIVA
-            ),
+        detalles_asignacion = list(activo.detalles_asignacion.all())
+        detalle_activo = next(
+            (detalle for detalle in detalles_asignacion if detalle.activa),
             None,
         )
-        context["historial_asignaciones"] = asignaciones
-        context["historial_eventos"] = list(activo.eventos.all())
 
+        context["asignacion_activa"] = detalle_activo.asignacion if detalle_activo else None
+        context["detalle_asignacion_activa"] = detalle_activo
+        context["historial_asignaciones"] = detalles_asignacion
+        context["historial_eventos"] = list(activo.eventos.all())
         return context

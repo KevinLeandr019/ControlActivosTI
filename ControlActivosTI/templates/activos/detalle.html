@@ -106,22 +106,24 @@
             <h3 class="text-lg font-semibold mb-4">Historial de asignaciones</h3>
 
             <div class="space-y-4">
-                {% for asignacion in historial_asignaciones %}
-                    <div class="border rounded-xl p-4">
-                        <p><strong>Colaborador:</strong> {{ asignacion.colaborador }}</p>
-                        <p><strong>Fecha de asignación:</strong> {{ asignacion.fecha_asignacion }}</p>
-                        <p><strong>Estado:</strong> {{ asignacion.estado_asignacion }}</p>
+                {% for detalle in historial_asignaciones %}
+                <div class="border rounded-xl p-4">
+                    <p><strong>Colaborador:</strong> {{ detalle.asignacion.colaborador }}</p>
+                    <p><strong>Fecha de asignación:</strong> {{ detalle.asignacion.fecha_asignacion }}</p>
+                    <p><strong>Estado:</strong> {{ detalle.asignacion.estado_asignacion }}</p>
 
-                        {% if asignacion.fecha_devolucion %}
-                            <p><strong>Fecha de devolución:</strong> {{ asignacion.fecha_devolucion }}</p>
-                            <p><strong>Estado final:</strong> {{ asignacion.estado_activo_devolucion|default:"-" }}</p>
-                        {% endif %}
-                    </div>
+                    {% if detalle.asignacion.fecha_devolucion %}
+                    <p><strong>Fecha de devolución:</strong> {{ detalle.asignacion.fecha_devolucion }}</p>
+                    <p><strong>Estado final:</strong> {{ detalle.estado_activo_devolucion|default:"-" }}</p>
+                    {% endif %}
+                </div>
                 {% empty %}
-                    <p class="text-slate-500">No hay asignaciones registradas para este activo.</p>
+                <p class="text-slate-500">No hay historial de asignaciones para este activo.</p>
                 {% endfor %}
             </div>
-        </div>
+            </div>
+
+       
     </div>
 
 </div>

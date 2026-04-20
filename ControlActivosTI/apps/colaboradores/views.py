@@ -5,7 +5,7 @@ from django.db.models import Prefetch, Q
 from django.views.generic import DetailView, ListView
 
 from apps.activos.models import FotoActivo
-from apps.asignaciones.models import Asignacion
+from apps.asignaciones.models import Asignacion, AsignacionDetalle
 from .models import Colaborador
 
 
@@ -78,13 +78,11 @@ class ColaboradorDetailView(LoginRequiredMixin, DetailView):
     context_object_name = "colaborador"
 
     def get_queryset(self):
-        asignaciones_qs = (
-            Asignacion.objects.select_related(
+        detalles_qs = (
+            AsignacionDetalle.objects.select_related(
                 "activo",
                 "activo__tipo_activo",
                 "activo__estado_activo",
-                "usuario_responsable",
-                "usuario_recepcion",
                 "estado_activo_devolucion",
             )
             .prefetch_related(
@@ -92,6 +90,17 @@ class ColaboradorDetailView(LoginRequiredMixin, DetailView):
                     "activo__fotos",
                     queryset=FotoActivo.objects.order_by("orden", "id"),
                 )
+            )
+            .order_by("orden", "id")
+        )
+
+        asignaciones_qs = (
+            Asignacion.objects.select_related(
+                "usuario_responsable",
+                "usuario_recepcion",
+            )
+            .prefetch_related(
+                Prefetch("detalles", queryset=detalles_qs)
             )
             .order_by("-fecha_asignacion", "-id")
         )
@@ -108,21 +117,27 @@ class ColaboradorDetailView(LoginRequiredMixin, DetailView):
         colaborador = self.object
         asignaciones = list(colaborador.asignaciones.all())
 
-        asignaciones_activas = [
-            asignacion
-            for asignacion in asignaciones
-            if asignacion.estado_asignacion == Asignacion.EstadoAsignacion.ACTIVA
-        ]
+        detalles_activos_actuales = []
+        historial_detalles = []
 
-        context["asignaciones_activas"] = asignaciones_activas
-        context["historial_asignaciones"] = asignaciones
-        context["total_activos_asignados"] = len(asignaciones_activas)
+        for asignacion in asignaciones:
+            detalles = list(asignacion.detalles.all())
+            historial_detalles.extend(detalles)
+
+            if asignacion.estado_asignacion == Asignacion.EstadoAsignacion.ACTIVA:
+                detalles_activos_actuales.extend(
+                    [detalle for detalle in detalles if detalle.activa]
+                )
+
+        context["detalles_activos_actuales"] = detalles_activos_actuales
+        context["historial_asignaciones"] = historial_detalles
+        context["total_activos_asignados"] = len(detalles_activos_actuales)
         context["valor_total_activos_asignados"] = sum(
             (
-                asignacion.activo.valor or Decimal("0.00")
-                for asignacion in asignaciones_activas
+                detalle.activo.valor or Decimal("0.00")
+                for detalle in detalles_activos_actuales
             ),
             Decimal("0.00"),
         )
-        context["puede_generar_acta"] = bool(asignaciones_activas)
+        context["puede_generar_acta"] = bool(detalles_activos_actuales)
         return context

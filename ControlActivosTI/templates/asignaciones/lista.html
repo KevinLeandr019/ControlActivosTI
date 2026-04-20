@@ -29,7 +29,17 @@
             <tbody class="divide-y divide-slate-100">
                 {% for asignacion in asignaciones %}
                     <tr class="align-top text-slate-700">
-                        <td class="px-4 py-3 font-medium text-slate-900">{{ asignacion.codigo_asignacion }}</td>
+                        <td class="py-3">
+                            {% for detalle in asignacion.detalles.all %}
+                                <div>
+                                <a href="{% url 'activos:detalle' detalle.activo.pk %}" class="text-cyan-700 hover:underline">
+                                    {{ detalle.activo.codigo }}
+                                </a>
+                                </div>
+                            {% empty %}
+                                -
+                            {% endfor %}
+                            </td>
                         <td class="px-4 py-3">
                             <div class="font-medium text-slate-900">{{ asignacion.total_activos }} activo{{ asignacion.total_activos|pluralize }}</div>
                             <div class="mt-1 text-xs text-slate-500">{{ asignacion.resumen_activos }}</div>
