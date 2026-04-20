@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Nueva asignación - ControlActivosTI{% endblock %}
-{% block page_title %}Nueva asignación{% endblock %}
+{% block title %}Nueva asignacion - ControlActivosTI{% endblock %}
+{% block page_title %}Nueva asignacion{% endblock %}
 {% block content %}
 <form method="post" class="space-y-6">
     {% csrf_token %}
@@ -15,7 +15,120 @@
 
     <div>
         <label class="mb-2 block text-sm font-semibold text-slate-700">Activos</label>
-        {{ form.activos }}
+        <div class="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto]">
+                <div>
+                    <label for="filtro-activos" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                        Buscar activos
+                    </label>
+                    <input
+                        id="filtro-activos"
+                        type="search"
+                        placeholder="Filtra por codigo, tipo, marca, modelo, serie o especificaciones"
+                        class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition duration-200 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+                    >
+                </div>
+                <button
+                    id="seleccionar-visibles"
+                    type="button"
+                    class="self-end rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                >
+                    Seleccionar visibles
+                </button>
+                <button
+                    id="limpiar-seleccion"
+                    type="button"
+                    class="self-end rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                >
+                    Limpiar
+                </button>
+            </div>
+
+            <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-sm">
+                        <thead class="bg-slate-100 text-slate-600">
+                            <tr>
+                                <th class="w-16 px-4 py-3 text-center font-semibold">Sel.</th>
+                                <th class="px-4 py-3 text-left font-semibold">Codigo</th>
+                                <th class="px-4 py-3 text-left font-semibold">Tipo</th>
+                                <th class="px-4 py-3 text-left font-semibold">Marca / Modelo</th>
+                                <th class="px-4 py-3 text-left font-semibold">Serie</th>
+                                <th class="px-4 py-3 text-left font-semibold">Especificaciones</th>
+                                <th class="px-4 py-3 text-left font-semibold">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-activos-body" class="divide-y divide-slate-200">
+                            {% for activo in activos_disponibles %}
+                                <tr
+                                    class="activo-row transition hover:bg-cyan-50"
+                                    data-search="{{ activo.codigo|lower }} {{ activo.tipo_activo.nombre|lower }} {{ activo.marca|lower }} {{ activo.modelo|lower }} {{ activo.serie|lower }} {{ activo.cpu|lower }} {{ activo.ram|lower }} {{ activo.disco|lower }} {{ activo.sistema_operativo|lower }} {{ activo.estado_activo.nombre|lower }} {{ activo.observaciones|lower }}"
+                                    data-codigo="{{ activo.codigo }}"
+                                    data-tipo="{{ activo.tipo_activo.nombre }}"
+                                    data-marca-modelo="{{ activo.marca }} {{ activo.modelo }}"
+                                    data-serie="{{ activo.serie|default:'S/N' }}"
+                                    data-especificaciones="{% if activo.cpu %}CPU: {{ activo.cpu }}{% endif %}{% if activo.ram %}{% if activo.cpu %} | {% endif %}RAM: {{ activo.ram }}{% endif %}{% if activo.disco %}{% if activo.cpu or activo.ram %} | {% endif %}Disco: {{ activo.disco }}{% endif %}{% if activo.sistema_operativo %}{% if activo.cpu or activo.ram or activo.disco %} | {% endif %}SO: {{ activo.sistema_operativo }}{% endif %}"
+                                    data-estado="{{ activo.estado_activo.nombre }}"
+                                >
+                                    <td class="px-4 py-3 text-center">
+                                        <input
+                                            type="checkbox"
+                                            name="activos"
+                                            value="{{ activo.pk }}"
+                                            class="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                                            {% if activo.pk in activos_seleccionados %}checked{% endif %}
+                                        >
+                                    </td>
+                                    <td class="px-4 py-3 font-semibold text-slate-900">{{ activo.codigo }}</td>
+                                    <td class="px-4 py-3 text-slate-700">{{ activo.tipo_activo.nombre }}</td>
+                                    <td class="px-4 py-3 text-slate-700">{{ activo.marca }} {{ activo.modelo }}</td>
+                                    <td class="px-4 py-3 text-slate-700">{{ activo.serie|default:"S/N" }}</td>
+                                    <td class="px-4 py-3 text-slate-600">
+                                        <div class="space-y-1">
+                                            {% if activo.cpu %}<div>CPU: {{ activo.cpu }}</div>{% endif %}
+                                            {% if activo.ram %}<div>RAM: {{ activo.ram }}</div>{% endif %}
+                                            {% if activo.disco %}<div>Disco: {{ activo.disco }}</div>{% endif %}
+                                            {% if activo.sistema_operativo %}<div>SO: {{ activo.sistema_operativo }}</div>{% endif %}
+                                            {% if not activo.cpu and not activo.ram and not activo.disco and not activo.sistema_operativo %}
+                                                <div>Sin especificaciones registradas</div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span class="rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
+                                            {{ activo.estado_activo.nombre }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="7" class="px-4 py-8 text-center text-slate-500">
+                                        No hay activos disponibles para asignacion.
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <p id="activos-sin-resultados" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                No hay activos que coincidan con el filtro actual.
+            </p>
+
+            <div class="rounded-2xl border border-slate-200 bg-white p-4">
+                <div class="flex items-center justify-between gap-3">
+                    <p class="text-sm font-semibold text-slate-700">Activos seleccionados</p>
+                    <span id="activos-seleccionados-contador" class="rounded-full bg-cyan-100 px-3 py-1 text-xs font-semibold text-cyan-700">
+                        0 seleccionados
+                    </span>
+                </div>
+                <div id="activos-seleccionados-lista" class="mt-4 grid gap-3 md:grid-cols-2"></div>
+                <p id="activos-seleccionados-vacio" class="mt-4 text-sm text-slate-500">
+                    Aun no has seleccionado activos.
+                </p>
+            </div>
+        </div>
         {% if form.activos.help_text %}
             <p class="mt-2 text-xs text-slate-500">{{ form.activos.help_text }}</p>
         {% endif %}
@@ -25,7 +138,7 @@
     </div>
 
     <div>
-        <label class="mb-2 block text-sm font-semibold text-slate-700">Fecha de asignación</label>
+        <label class="mb-2 block text-sm font-semibold text-slate-700">Fecha de asignacion</label>
         {{ form.fecha_asignacion }}
         {% if form.fecha_asignacion.errors %}
             <p class="mt-2 text-sm text-red-600">{{ form.fecha_asignacion.errors|join:", " }}</p>
@@ -48,11 +161,155 @@
 
     <div class="flex items-center gap-3">
         <button type="submit" class="rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-cyan-700">
-            Guardar asignación
+            Guardar asignacion
         </button>
         <a href="{% url 'asignaciones:lista' %}" class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
             Cancelar
         </a>
     </div>
 </form>
+
+<script>
+    (() => {
+        const filtro = document.getElementById("filtro-activos");
+        const cuerpoTabla = document.getElementById("tabla-activos-body");
+        const sinResultados = document.getElementById("activos-sin-resultados");
+        const contador = document.getElementById("activos-seleccionados-contador");
+        const lista = document.getElementById("activos-seleccionados-lista");
+        const vacio = document.getElementById("activos-seleccionados-vacio");
+        const seleccionarVisibles = document.getElementById("seleccionar-visibles");
+        const limpiarSeleccion = document.getElementById("limpiar-seleccion");
+
+        if (!filtro || !cuerpoTabla || !sinResultados || !contador || !lista || !vacio) {
+            return;
+        }
+
+        const filas = Array.from(cuerpoTabla.querySelectorAll(".activo-row"));
+
+        const obtenerCheckbox = (fila) => fila.querySelector('input[type="checkbox"][name="activos"]');
+
+        const actualizarFiltro = () => {
+            const termino = filtro.value.trim().toLowerCase();
+            let visibles = 0;
+
+            filas.forEach((fila) => {
+                const coincide = !termino || (fila.dataset.search || "").includes(termino);
+                fila.classList.toggle("hidden", !coincide);
+                if (coincide) {
+                    visibles += 1;
+                }
+            });
+
+            sinResultados.classList.toggle("hidden", visibles > 0 || !filas.length);
+        };
+
+        const crearTarjeta = (fila) => {
+            const tarjeta = document.createElement("article");
+            tarjeta.className = "rounded-xl border border-slate-200 bg-slate-50 p-4";
+            tarjeta.innerHTML = `
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <p class="text-sm font-semibold text-slate-900">${fila.dataset.codigo || ""}</p>
+                        <p class="mt-1 text-sm text-slate-700">${fila.dataset.marcaModelo || ""}</p>
+                    </div>
+                    <span class="rounded-full bg-slate-200 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">
+                        ${fila.dataset.tipo || ""}
+                    </span>
+                </div>
+                <dl class="mt-3 space-y-2 text-xs text-slate-600">
+                    <div>
+                        <dt class="font-semibold text-slate-700">Serie</dt>
+                        <dd>${fila.dataset.serie || "S/N"}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-semibold text-slate-700">Especificaciones</dt>
+                        <dd>${fila.dataset.especificaciones || "Sin especificaciones registradas"}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-semibold text-slate-700">Estado actual</dt>
+                        <dd>${fila.dataset.estado || ""}</dd>
+                    </div>
+                </dl>
+            `;
+            return tarjeta;
+        };
+
+        const actualizarSeleccion = () => {
+            const seleccionados = filas.filter((fila) => {
+                const checkbox = obtenerCheckbox(fila);
+                return checkbox && checkbox.checked;
+            });
+
+            contador.textContent = `${seleccionados.length} seleccionado${seleccionados.length === 1 ? "" : "s"}`;
+            lista.innerHTML = "";
+
+            if (!seleccionados.length) {
+                vacio.classList.remove("hidden");
+                return;
+            }
+
+            vacio.classList.add("hidden");
+            seleccionados.forEach((fila) => {
+                lista.appendChild(crearTarjeta(fila));
+            });
+        };
+
+        filas.forEach((fila) => {
+            const checkbox = obtenerCheckbox(fila);
+            if (!checkbox) {
+                return;
+            }
+
+            fila.classList.toggle("bg-cyan-50", checkbox.checked);
+            checkbox.addEventListener("change", () => {
+                fila.classList.toggle("bg-cyan-50", checkbox.checked);
+                actualizarSeleccion();
+            });
+
+            fila.addEventListener("click", (event) => {
+                if (event.target.closest('input, button, a, label')) {
+                    return;
+                }
+                checkbox.checked = !checkbox.checked;
+                checkbox.dispatchEvent(new Event("change"));
+            });
+        });
+
+        if (seleccionarVisibles) {
+            seleccionarVisibles.addEventListener("click", () => {
+                filas.forEach((fila) => {
+                    if (fila.classList.contains("hidden")) {
+                        return;
+                    }
+                    const checkbox = obtenerCheckbox(fila);
+                    if (!checkbox) {
+                        return;
+                    }
+                    checkbox.checked = true;
+                    fila.classList.add("bg-cyan-50");
+                });
+                actualizarSeleccion();
+            });
+        }
+
+        if (limpiarSeleccion) {
+            limpiarSeleccion.addEventListener("click", () => {
+                filas.forEach((fila) => {
+                    const checkbox = obtenerCheckbox(fila);
+                    if (!checkbox) {
+                        return;
+                    }
+                    checkbox.checked = false;
+                    fila.classList.remove("bg-cyan-50");
+                });
+                actualizarSeleccion();
+            });
+        }
+
+        filtro.addEventListener("input", actualizarFiltro);
+
+        actualizarFiltro();
+        actualizarSeleccion();
+    })();
+</script>
 {% endblock %}

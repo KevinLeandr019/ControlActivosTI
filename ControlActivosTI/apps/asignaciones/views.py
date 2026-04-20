@@ -42,6 +42,14 @@ class AsignacionCreateView(LoginRequiredMixin, CreateView):
     template_name = "asignaciones/formulario.html"
     success_url = reverse_lazy("asignaciones:lista")
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        form = context["form"]
+        activos_seleccionados = form["activos"].value() or []
+        context["activos_disponibles"] = form.fields["activos"].queryset
+        context["activos_seleccionados"] = [int(activo_id) for activo_id in activos_seleccionados]
+        return context
+
     def form_valid(self, form):
         form.instance.usuario_responsable = self.request.user
         self.object = form.save()

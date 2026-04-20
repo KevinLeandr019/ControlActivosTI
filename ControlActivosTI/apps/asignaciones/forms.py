@@ -22,10 +22,102 @@ TEXTAREA_CLASS = (
 )
 
 
+class ActivoSelectMultiple(forms.SelectMultiple):
+    def create_option(
+        self,
+        name,
+        value,
+        label,
+        selected,
+        index,
+        subindex=None,
+        attrs=None,
+    ):
+        option = super().create_option(
+            name,
+            value,
+            label,
+            selected,
+            index,
+            subindex=subindex,
+            attrs=attrs,
+        )
+        activo = getattr(value, "instance", None)
+        if activo:
+            option["attrs"].update(
+                {
+                    "data-search": self._build_search_value(activo),
+                    "data-codigo": activo.codigo,
+                    "data-tipo": activo.tipo_activo.nombre,
+                    "data-marca-modelo": f"{activo.marca} {activo.modelo}".strip(),
+                    "data-serie": activo.serie or "S/N",
+                    "data-especificaciones": self._build_specs_value(activo),
+                    "data-estado": activo.estado_activo.nombre,
+                }
+            )
+        return option
+
+    def _build_search_value(self, activo):
+        valores = [
+            activo.codigo,
+            activo.tipo_activo.nombre,
+            activo.marca,
+            activo.modelo,
+            activo.serie,
+            activo.cpu,
+            activo.ram,
+            activo.disco,
+            activo.sistema_operativo,
+            activo.estado_activo.nombre,
+            activo.observaciones,
+        ]
+        return " ".join(valor.strip() for valor in valores if valor).lower()
+
+    def _build_specs_value(self, activo):
+        specs = []
+        if activo.cpu:
+            specs.append(f"CPU: {activo.cpu}")
+        if activo.ram:
+            specs.append(f"RAM: {activo.ram}")
+        if activo.disco:
+            specs.append(f"Disco: {activo.disco}")
+        if activo.sistema_operativo:
+            specs.append(f"SO: {activo.sistema_operativo}")
+        return " | ".join(specs) if specs else "Sin especificaciones registradas"
+
+
+class ActivoMultipleChoiceField(forms.ModelMultipleChoiceField):
+    def label_from_instance(self, obj):
+        partes = [
+            obj.codigo,
+            obj.tipo_activo.nombre,
+            f"{obj.marca} {obj.modelo}".strip(),
+            f"Serie: {obj.serie or 'S/N'}",
+        ]
+
+        specs = []
+        if obj.cpu:
+            specs.append(f"CPU: {obj.cpu}")
+        if obj.ram:
+            specs.append(f"RAM: {obj.ram}")
+        if obj.disco:
+            specs.append(f"Disco: {obj.disco}")
+        if specs:
+            partes.append(" | ".join(specs))
+
+        partes.append(f"Estado: {obj.estado_activo.nombre}")
+        return " | ".join(partes)
+
+
 class AsignacionCreateForm(forms.ModelForm):
-    activos = forms.ModelMultipleChoiceField(
+    activos = ActivoMultipleChoiceField(
         queryset=Activo.objects.none(),
-        widget=forms.SelectMultiple(attrs={"size": 10}),
+        widget=ActivoSelectMultiple(
+            attrs={
+                "size": 10,
+                "data-role": "activo-select",
+            }
+        ),
         label="Activos",
     )
 
@@ -62,7 +154,7 @@ class AsignacionCreateForm(forms.ModelForm):
             else:
                 field.widget.attrs["class"] = BASE_CLASS
             if name == "activos":
-                field.help_text = "Mantén presionada Ctrl para seleccionar varios activos."
+                field.help_text = "Usa el buscador y selecciona uno o varios activos con los checks."
 
     def clean_activos(self):
         activos = self.cleaned_data.get("activos")
