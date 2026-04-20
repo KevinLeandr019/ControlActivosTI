@@ -26,7 +26,12 @@ class Activo(models.Model):
     )
     marca = models.CharField(max_length=80)
     modelo = models.CharField(max_length=80)
-    serie = models.CharField(max_length=120, unique=True, db_index=True)
+    serie = models.CharField(
+    max_length=120,
+    db_index=True,
+    blank=True,
+    default="S/N",
+    )
     cpu = models.CharField(max_length=150, blank=True)
     ram = models.CharField(max_length=50, blank=True)
     disco = models.CharField(max_length=80, blank=True)
@@ -85,6 +90,8 @@ class Activo(models.Model):
         return f"{prefijo}-{siguiente_numero:04d}"
 
     def save(self, *args, **kwargs):
+        if not self.serie or not self.serie.strip():
+            self.serie = "S/N"
         if not self.codigo:
             self.codigo = self._generar_codigo()
         super().save(*args, **kwargs)
