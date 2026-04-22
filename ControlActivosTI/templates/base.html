@@ -6,35 +6,44 @@
     <title>{% block title %}ControlActivosTI{% endblock %}</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
-<body class="bg-slate-100 text-slate-800 min-h-screen">
+<body class="min-h-screen bg-slate-100 text-slate-800">
     <div class="flex min-h-screen">
-        <aside class="w-64 bg-slate-900 text-white p-6">
-            <h1 class="text-2xl font-bold mb-8">ControlActivosTI</h1>
+        <aside class="w-64 bg-slate-900 p-6 text-white">
+            <h1 class="mb-8 text-2xl font-bold">ControlActivosTI</h1>
             <nav class="space-y-2">
-                <a href="/dashboard/" class="block px-4 py-2 rounded-lg hover:bg-slate-800">Dashboard</a>
-                <a href="/activos/" class="block px-4 py-2 rounded-lg hover:bg-slate-800">Activos</a>
-                <a href="/colaboradores/" class="block px-4 py-2 rounded-lg hover:bg-slate-800">Colaboradores</a>
-                <a href="/asignaciones/" class="block px-4 py-2 rounded-lg hover:bg-slate-800">Asignaciones</a>
-                <a href="/admin/" class="block px-4 py-2 rounded-lg hover:bg-slate-800">Admin</a>
+                <a href="/dashboard/" class="block rounded-lg px-4 py-2 hover:bg-slate-800">Dashboard</a>
+                <a href="/activos/" class="block rounded-lg px-4 py-2 hover:bg-slate-800">Activos</a>
+                <a href="/colaboradores/" class="block rounded-lg px-4 py-2 hover:bg-slate-800">Colaboradores</a>
+                <a href="/asignaciones/" class="block rounded-lg px-4 py-2 hover:bg-slate-800">Asignaciones</a>
+                <a href="/admin/" class="block rounded-lg px-4 py-2 hover:bg-slate-800">Admin</a>
             </nav>
         </aside>
 
         <main class="flex-1 p-8">
-            <div class="flex justify-between items-center mb-8">
+            <div class="mb-8 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-6 py-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <h2 class="text-3xl font-semibold">{% block page_title %}Panel{% endblock %}</h2>
+                    <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">ControlActivosTI</p>
+                    <h2 class="mt-2 text-3xl font-semibold text-slate-900">{% block page_title %}Panel{% endblock %}</h2>
                 </div>
 
                 {% if user.is_authenticated %}
-                <div class="flex items-center gap-4">
-                    <span class="text-sm text-slate-600">{{ user.username }}</span>
-                    <form method="post" action="{% url 'accounts:logout' %}">
-                        {% csrf_token %}
-                        <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-                            Cerrar sesión
-                        </button>
-                    </form>
-                </div>
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <div class="inline-flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-100 text-sm font-bold text-cyan-700">
+                                {{ user.username|first|upper }}
+                            </span>
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Usuario activo</p>
+                                <p class="text-sm font-semibold text-slate-700">{{ user.username }}</p>
+                            </div>
+                        </div>
+                        <form method="post" action="{% url 'accounts:logout' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                Cerrar sesion
+                            </button>
+                        </form>
+                    </div>
                 {% endif %}
             </div>
 
@@ -43,7 +52,7 @@
             {% if messages %}
                 <div class="mb-6 space-y-3">
                     {% for message in messages %}
-                        <div class="px-4 py-3 rounded-lg bg-green-100 text-green-800 border border-green-200">
+                        <div class="rounded-lg border border-green-200 bg-green-100 px-4 py-3 text-green-800">
                             {{ message }}
                         </div>
                     {% endfor %}
