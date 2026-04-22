@@ -1,0 +1,169 @@
+{% extends "admin2/base.html" %}
+
+{% block admin2_content %}
+<section class="admin2-panel admin2-panel--hero">
+    <div class="admin2-hero">
+        <div>
+            <p class="admin2-hero__label">Backoffice activo</p>
+            <h2>Una consola propia para operar y supervisar el sistema</h2>
+            <p class="admin2-hero__copy">
+                Este espacio ya consume datos reales del proyecto. Sirve para monitorear el estado
+                general, entrar a las vistas operativas y centralizar tareas administrativas sin
+                depender de la interfaz nativa de Django.
+            </p>
+
+            <div class="admin2-actionrow">
+                {% for link in accesos_rapidos %}
+                    <a href="{{ link.url }}" class="admin2-button {% if forloop.first %}is-primary{% else %}is-secondary{% endif %}">
+                        {{ link.label }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="admin2-summary">
+            {% for item in resumen %}
+                <article class="admin2-summary__card tone-{{ item.tone }}">
+                    <span>{{ item.label }}</span>
+                    <strong>{{ item.value }}</strong>
+                </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="admin2-panel">
+    <div class="admin2-sectionhead">
+        <div>
+            <p class="admin2-sectionhead__eyebrow">Modulos</p>
+            <h2>Explora la consola</h2>
+        </div>
+    </div>
+
+    <div class="admin2-console-grid">
+        {% for item in admin2_modules %}
+            <a href="{{ item.url }}" class="admin2-console-tile">
+                <span class="admin2-console-tile__icon">{{ item.icon_label }}</span>
+                <span class="admin2-console-tile__eyebrow">{{ item.eyebrow }}</span>
+                <strong>{{ item.title }}</strong>
+                <p>{{ item.description }}</p>
+                <div class="admin2-console-tile__meta">
+                    <span>{{ item.metric_label }}</span>
+                    <strong>{{ item.metric_value }}</strong>
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="admin2-panel">
+    <div class="admin2-sectionhead">
+        <div>
+            <p class="admin2-sectionhead__eyebrow">Guia de uso</p>
+            <h2>Que se gestiona en cada consola</h2>
+        </div>
+    </div>
+
+    <div class="admin2-zones">
+        {% for zone in zonas_administracion %}
+            <article class="admin2-zone admin2-zone--{{ zone.tone }}">
+                <p class="admin2-zone__subtitle">{{ zone.subtitle }}</p>
+                <h3>{{ zone.title }}</h3>
+                <div class="admin2-zone__list">
+                    {% for item in zone.items %}
+                        <div class="admin2-zone__item">{{ item }}</div>
+                    {% endfor %}
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+</section>
+
+<div class="admin2-content-grid">
+    <section class="admin2-panel">
+        <div class="admin2-sectionhead">
+            <div>
+                <p class="admin2-sectionhead__eyebrow">Actividad</p>
+                <h2>Ultimas asignaciones</h2>
+            </div>
+        </div>
+
+        <div class="admin2-tablewrap">
+            <table class="admin2-table">
+                <thead>
+                    <tr>
+                        <th>Codigo</th>
+                        <th>Colaborador</th>
+                        <th>Activos</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for asignacion in ultimas_asignaciones %}
+                        <tr>
+                            <td>{{ asignacion.codigo_asignacion }}</td>
+                            <td>{{ asignacion.colaborador }}</td>
+                            <td>{{ asignacion.total_activos }}</td>
+                            <td>
+                                <span class="admin2-badge tone-{% if asignacion.estado_asignacion == 'ACTIVA' %}emerald{% else %}slate{% endif %}">
+                                    {{ asignacion.get_estado_asignacion_display }}
+                                </span>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="is-empty">No hay asignaciones recientes.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <div class="admin2-stack">
+        <section class="admin2-panel">
+            <div class="admin2-sectionhead">
+                <div>
+                    <p class="admin2-sectionhead__eyebrow">Inventario</p>
+                    <h2>Activos recientes</h2>
+                </div>
+            </div>
+
+            <div class="admin2-list">
+                {% for activo in activos_recientes %}
+                    <a href="{% url 'activos:detalle' activo.pk %}" class="admin2-list__item">
+                        <div>
+                            <strong>{{ activo.codigo }}</strong>
+                            <p>{{ activo.tipo_activo }} · {{ activo.marca }} {{ activo.modelo }}</p>
+                        </div>
+                        <span class="admin2-badge tone-{% if activo.estado_activo.permite_asignacion %}emerald{% elif activo.estado_activo.nombre|lower == 'asignado' %}cyan{% else %}amber{% endif %}">
+                            {{ activo.estado_activo.nombre }}
+                        </span>
+                    </a>
+                {% empty %}
+                    <div class="admin2-list__empty">No hay activos recientes.</div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="admin2-panel">
+            <div class="admin2-sectionhead">
+                <div>
+                    <p class="admin2-sectionhead__eyebrow">Atencion</p>
+                    <h2>Alertas operativas</h2>
+                </div>
+            </div>
+
+            <div class="admin2-alerts">
+                {% for alerta in alertas_operativas %}
+                    <article class="admin2-alert">
+                        <strong>{{ alerta.title }}</strong>
+                        <span>{{ alerta.value }}</span>
+                        <p>{{ alerta.detail }}</p>
+                    </article>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

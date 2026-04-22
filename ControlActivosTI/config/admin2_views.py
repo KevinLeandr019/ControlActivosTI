@@ -1,0 +1,831 @@
+from django import forms
+from django.contrib import messages
+from django.contrib.auth import get_user_model
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.db.models import Count, Sum
+from django.db.models.functions import TruncMonth
+from django.forms import modelform_factory
+from django.http import Http404
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
+from django.views.generic import FormView, TemplateView
+
+from apps.activos.models import Activo, EventoActivo
+from apps.asignaciones.models import Asignacion
+from apps.catalogos.models import (
+    Area,
+    Cargo,
+    Empresa,
+    EstadoActivo,
+    TipoActivo,
+    TipoEventoActivo,
+    Ubicacion,
+)
+from apps.colaboradores.models import Colaborador
+
+
+User = get_user_model()
+
+
+CATALOG_CONFIG = {
+    "areas": {
+        "model": Area,
+        "title": "Areas",
+        "singular": "Area",
+        "description": "Organizan colaboradores, reportes y segmentacion interna.",
+        "fields": ["nombre", "descripcion", "activo"],
+        "columns": ["nombre", "activo", "updated_at"],
+        "admin_changelist": "admin:catalogos_area_changelist",
+    },
+    "cargos": {
+        "model": Cargo,
+        "title": "Cargos",
+        "singular": "Cargo",
+        "description": "Definen los puestos o roles asociados a cada colaborador.",
+        "fields": ["nombre", "descripcion", "activo"],
+        "columns": ["nombre", "activo", "updated_at"],
+        "admin_changelist": "admin:catalogos_cargo_changelist",
+    },
+    "empresas": {
+        "model": Empresa,
+        "title": "Empresas",
+        "singular": "Empresa",
+        "description": "Permiten clasificar colaboradores y estructura empresarial.",
+        "fields": ["nombre", "descripcion", "activo"],
+        "columns": ["nombre", "activo", "updated_at"],
+        "admin_changelist": "admin:catalogos_empresa_changelist",
+    },
+    "ubicaciones": {
+        "model": Ubicacion,
+        "title": "Ubicaciones",
+        "singular": "Ubicacion",
+        "description": "Controlan sedes, oficinas o lugares fisicos relacionados.",
+        "fields": ["nombre", "descripcion", "activo"],
+        "columns": ["nombre", "activo", "updated_at"],
+        "admin_changelist": "admin:catalogos_ubicacion_changelist",
+    },
+    "tipos-activo": {
+        "model": TipoActivo,
+        "title": "Tipos de activo",
+        "singular": "Tipo de activo",
+        "description": "Determinan la categoria general del equipo y su prefijo de codigo.",
+        "fields": ["nombre", "descripcion", "activo"],
+        "columns": ["nombre", "activo", "updated_at"],
+        "admin_changelist": "admin:catalogos_tipoactivo_changelist",
+    },
+    "estados-activo": {
+        "model": EstadoActivo,
+        "title": "Estados de activo",
+        "singular": "Estado de activo",
+        "description": "Controlan la disponibilidad y el ciclo operativo de cada activo.",
+        "fields": ["nombre", "descripcion", "permite_asignacion", "activo"],
+        "columns": ["nombre", "permite_asignacion", "activo", "updated_at"],
+        "admin_changelist": "admin:catalogos_estadoactivo_changelist",
+    },
+    "tipos-evento": {
+        "model": TipoEventoActivo,
+        "title": "Tipos de evento",
+        "singular": "Tipo de evento",
+        "description": "Clasifican eventos historicos o de seguimiento sobre activos.",
+        "fields": ["nombre", "descripcion", "activo"],
+        "columns": ["nombre", "activo", "updated_at"],
+        "admin_changelist": "admin:catalogos_tipoeventoactivo_changelist",
+    },
+}
+
+
+ADMIN2_MODULES = [
+    {
+        "slug": "usuarios",
+        "title": "Usuarios",
+        "description": "Gestiona accesos internos, cuentas administrativas y perfiles sensibles.",
+        "icon_label": "US",
+        "eyebrow": "Accesos",
+    },
+    {
+        "slug": "catalogos",
+        "title": "Catalogos",
+        "description": "Mantiene estados, tipos y tablas maestras que alimentan la operacion.",
+        "icon_label": "CT",
+        "eyebrow": "Configuracion",
+    },
+    {
+        "slug": "seguridad",
+        "title": "Seguridad",
+        "description": "Revisa permisos, cuentas con privilegios y puntos de control interno.",
+        "icon_label": "SG",
+        "eyebrow": "Control",
+    },
+    {
+        "slug": "reportes",
+        "title": "Reportes",
+        "description": "Resume tendencias de inventario, asignaciones y distribucion por area.",
+        "icon_label": "RP",
+        "eyebrow": "Analitica",
+    },
+    {
+        "slug": "inventario",
+        "title": "Inventario",
+        "description": "Monitorea el parque de activos con foco en disponibilidad y estado actual.",
+        "icon_label": "IN",
+        "eyebrow": "Operacion",
+    },
+    {
+        "slug": "auditoria",
+        "title": "Auditoria",
+        "description": "Concentra actividad reciente para seguimiento y trazabilidad operativa.",
+        "icon_label": "AU",
+        "eyebrow": "Seguimiento",
+    },
+]
+
+
+class Admin2AccessMixin(LoginRequiredMixin, UserPassesTestMixin):
+    def test_func(self):
+        user = self.request.user
+        return user.is_staff or user.is_superuser
+
+
+class Admin2BaseContextMixin:
+    page_title = "Admin2"
+    page_subtitle = "Backoffice experimental"
+
+    def get_module_cards(self):
+        cards = []
+        metrics = self.get_module_metrics()
+
+        for module in ADMIN2_MODULES:
+            item = module.copy()
+            item["url"] = reverse(f"admin2-{module['slug']}")
+            item.update(metrics.get(module["slug"], {}))
+            cards.append(item)
+        return cards
+
+    def get_catalog_cards(self):
+        cards = []
+        for slug, config in CATALOG_CONFIG.items():
+            model = config["model"]
+            cards.append(
+                {
+                    "slug": slug,
+                    "title": config["title"],
+                    "description": config["description"],
+                    "count": model.objects.count(),
+                    "active_count": model.objects.filter(activo=True).count(),
+                    "url": reverse("admin2-catalogo-lista", args=[slug]),
+                    "admin_url": reverse(config["admin_changelist"]),
+                }
+            )
+        return cards
+
+    def get_module_metrics(self):
+        activos_disponibles = Activo.objects.filter(
+            estado_activo__permite_asignacion=True
+        ).count()
+        usuarios_staff = User.objects.filter(is_staff=True).count()
+        eventos_recientes = EventoActivo.objects.count()
+
+        return {
+            "usuarios": {
+                "metric_label": "Cuentas staff",
+                "metric_value": usuarios_staff,
+            },
+            "catalogos": {
+                "metric_label": "Catalogos activos",
+                "metric_value": len(CATALOG_CONFIG),
+            },
+            "seguridad": {
+                "metric_label": "Usuarios activos",
+                "metric_value": User.objects.filter(is_active=True).count(),
+            },
+            "reportes": {
+                "metric_label": "Asignaciones activas",
+                "metric_value": Asignacion.objects.filter(
+                    estado_asignacion=Asignacion.EstadoAsignacion.ACTIVA
+                ).count(),
+            },
+            "inventario": {
+                "metric_label": "Activos disponibles",
+                "metric_value": activos_disponibles,
+            },
+            "auditoria": {
+                "metric_label": "Eventos registrados",
+                "metric_value": eventos_recientes,
+            },
+        }
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["admin2_modules"] = self.get_module_cards()
+        context["admin2_page_title"] = self.page_title
+        context["admin2_page_subtitle"] = self.page_subtitle
+        return context
+
+
+class Admin2HomeView(Admin2AccessMixin, Admin2BaseContextMixin, TemplateView):
+    template_name = "admin2/inicio.html"
+    page_title = "Consola administrativa"
+    page_subtitle = "Backoffice propio conectado a datos reales"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        valor_total = Activo.objects.aggregate(total=Sum("valor")).get("total") or 0
+        activos_asignados = Activo.objects.filter(
+            estado_activo__nombre__iexact="Asignado"
+        ).count()
+        colaboradores_activos = Colaborador.objects.filter(
+            estado=Colaborador.EstadoColaborador.ACTIVO
+        ).count()
+        asignaciones_activas = Asignacion.objects.filter(
+            estado_asignacion=Asignacion.EstadoAsignacion.ACTIVA
+        ).count()
+
+        context["resumen"] = [
+            {"label": "Activos registrados", "value": Activo.objects.count(), "tone": "cyan"},
+            {"label": "Colaboradores activos", "value": colaboradores_activos, "tone": "blue"},
+            {"label": "Asignaciones activas", "value": asignaciones_activas, "tone": "emerald"},
+            {"label": "Valor inventario", "value": f"${valor_total}", "tone": "amber"},
+        ]
+        context["accesos_rapidos"] = [
+            {"label": "Gestionar activos", "url": reverse("activos:lista")},
+            {"label": "Gestionar catalogos", "url": reverse("admin2-catalogos")},
+            {"label": "Registrar asignacion", "url": reverse("asignaciones:nueva")},
+            {"label": "Abrir Django Admin", "url": "/admin/"},
+        ]
+        context["ultimas_asignaciones"] = (
+            Asignacion.objects.select_related("colaborador", "usuario_responsable")
+            .prefetch_related("detalles__activo")
+            .order_by("-fecha_asignacion", "-id")[:6]
+        )
+        context["activos_recientes"] = (
+            Activo.objects.select_related("tipo_activo", "estado_activo")
+            .order_by("-created_at", "-id")[:6]
+        )
+        activos_sin_foto = Activo.objects.filter(fotos__isnull=True).count()
+        context["alertas_operativas"] = [
+            {
+                "title": "Activos listos para entrega",
+                "value": Activo.objects.filter(estado_activo__permite_asignacion=True).count(),
+                "detail": "Inventario que ya puede asignarse desde operacion.",
+            },
+            {
+                "title": "Activos actualmente asignados",
+                "value": activos_asignados,
+                "detail": "Equipos en uso por colaboradores o pendientes de retorno.",
+            },
+            {
+                "title": "Activos sin fotografia",
+                "value": activos_sin_foto,
+                "detail": "Buena oportunidad para completar evidencia visual del inventario.",
+            },
+        ]
+        context["zonas_administracion"] = [
+            {
+                "title": "Gestiona Desde /admin2",
+                "subtitle": "Backoffice orientado a operacion y negocio",
+                "tone": "emerald",
+                "items": [
+                    "Revisar el panorama general del sistema.",
+                    "Administrar catalogos maestros desde una interfaz propia.",
+                    "Entrar rapidamente a activos, colaboradores y asignaciones.",
+                    "Consultar inventario, reportes y actividad reciente.",
+                ],
+            },
+            {
+                "title": "Gestiona Desde /admin",
+                "subtitle": "Zona tecnica y de soporte avanzado",
+                "tone": "slate",
+                "items": [
+                    "Usuarios, grupos y permisos avanzados.",
+                    "Correcciones manuales delicadas o soporte puntual.",
+                    "Modelos no migrados todavia a /admin2.",
+                    "Mantenimiento tecnico que requiere la consola nativa de Django.",
+                ],
+            },
+        ]
+        return context
+
+
+class Admin2ModuleView(Admin2AccessMixin, Admin2BaseContextMixin, TemplateView):
+    template_name = "admin2/modulo.html"
+    module_slug = ""
+
+    MODULE_DETAILS = {
+        "usuarios": {
+            "title": "Usuarios",
+            "subtitle": "Accesos y perfiles internos",
+            "description": "Vista para revisar quienes tienen acceso y apoyarte en Django Admin para permisos avanzados.",
+        },
+        "catalogos": {
+            "title": "Catalogos",
+            "subtitle": "Tablas maestras del sistema",
+            "description": "Panel para administrar catalogos desde /admin2 y dejar en Django Admin solo lo mas tecnico.",
+        },
+        "seguridad": {
+            "title": "Seguridad",
+            "subtitle": "Permisos y supervision interna",
+            "description": "Espacio para vigilar cuentas privilegiadas y puntos que merecen revision periodica.",
+        },
+        "reportes": {
+            "title": "Reportes",
+            "subtitle": "Panorama ejecutivo del backoffice",
+            "description": "Resumen de indicadores que ayudan a tomar decisiones sin salir a cada modulo operativo.",
+        },
+        "inventario": {
+            "title": "Inventario",
+            "subtitle": "Control del parque de activos",
+            "description": "Lectura administrativa del inventario con foco en estado, disponibilidad y ultimos ingresos.",
+        },
+        "auditoria": {
+            "title": "Auditoria",
+            "subtitle": "Actividad reciente y trazabilidad",
+            "description": "Seguimiento de movimientos y eventos para detectar cambios importantes y mantener contexto operativo.",
+        },
+    }
+
+    def get_module_data(self):
+        return self.MODULE_DETAILS[self.module_slug]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        data = self.get_module_data()
+        payload = self.get_module_payload()
+        context["module"] = data
+        context["admin2_page_title"] = data["title"]
+        context["admin2_page_subtitle"] = data["subtitle"]
+        context.update(payload)
+        return context
+
+    def get_module_payload(self):
+        method = getattr(self, f"build_{self.module_slug}_payload")
+        return method()
+
+    def build_usuarios_payload(self):
+        users = User.objects.order_by("-date_joined", "-id")[:8]
+        rows = []
+        for user in users:
+            access_label = "Superusuario" if user.is_superuser else "Staff" if user.is_staff else "Basico"
+            access_tone = "emerald" if user.is_superuser else "cyan" if user.is_staff else "slate"
+            rows.append(
+                {
+                    "cells": [
+                        {"value": user.get_username(), "subvalue": user.get_full_name() or "Sin nombre completo"},
+                        {"value": user.email or "-", "subvalue": "Correo principal"},
+                        {"value": access_label, "badge": True, "tone": access_tone},
+                        {
+                            "value": user.last_login.strftime("%d/%m/%Y %H:%M") if user.last_login else "Sin ingreso",
+                            "subvalue": f"Alta: {user.date_joined.strftime('%d/%m/%Y')}",
+                        },
+                    ]
+                }
+            )
+
+        return {
+            "stats": [
+                {"label": "Usuarios totales", "value": User.objects.count()},
+                {"label": "Usuarios activos", "value": User.objects.filter(is_active=True).count()},
+                {"label": "Cuentas staff", "value": User.objects.filter(is_staff=True).count()},
+                {"label": "Superusuarios", "value": User.objects.filter(is_superuser=True).count()},
+            ],
+            "module_actions": [
+                {"label": "Usuarios en Django Admin", "url": reverse("admin:auth_user_changelist"), "kind": "primary"},
+                {"label": "Grupos y permisos", "url": reverse("admin:auth_group_changelist"), "kind": "secondary"},
+            ],
+            "table_title": "Ultimas cuentas registradas",
+            "table_columns": ["Usuario", "Correo", "Acceso", "Ultimo ingreso"],
+            "table_rows": rows,
+            "table_empty_message": "Todavia no hay usuarios para mostrar.",
+            "info_panels": [
+                {
+                    "title": "Como lo manejaremos aqui",
+                    "items": [
+                        {"label": "Consulta y supervision", "value": "Desde /admin2"},
+                        {"label": "Permisos avanzados", "value": "Desde Django Admin"},
+                        {"label": "Evitar duplicar complejidad", "value": "Decisiones mas mantenibles"},
+                    ],
+                }
+            ],
+        }
+
+    def build_catalogos_payload(self):
+        rows = []
+        for item in self.get_catalog_cards():
+            rows.append(
+                {
+                    "cells": [
+                        {"value": item["title"], "url": item["url"], "subvalue": item["description"]},
+                        {"value": item["count"]},
+                        {"value": item["active_count"], "subvalue": "Registros activos"},
+                        {"value": "Gestionar", "badge": True, "tone": "cyan", "url": item["url"]},
+                    ]
+                }
+            )
+
+        return {
+            "stats": [
+                {"label": "Catalogos", "value": len(CATALOG_CONFIG)},
+                {"label": "Areas", "value": Area.objects.count()},
+                {"label": "Estados", "value": EstadoActivo.objects.count()},
+                {"label": "Tipos", "value": TipoActivo.objects.count()},
+            ],
+            "module_actions": [
+                {"label": "Abrir catalogos", "url": reverse("admin2-catalogo-lista", args=["areas"]), "kind": "primary"},
+                {"label": "Catalogos en Django Admin", "url": reverse("admin:catalogos_area_changelist"), "kind": "secondary"},
+            ],
+            "table_title": "Catalogos disponibles",
+            "table_columns": ["Catalogo", "Total", "Activos", "Accion"],
+            "table_rows": rows,
+            "table_empty_message": "No hay catalogos configurados.",
+            "info_panels": [
+                {
+                    "title": "Catalogos administrables desde /admin2",
+                    "items": [
+                        {"label": item["title"], "value": item["count"], "url": item["url"]}
+                        for item in self.get_catalog_cards()[:5]
+                    ],
+                }
+            ],
+        }
+
+    def build_seguridad_payload(self):
+        privileged_users = User.objects.filter(is_staff=True).order_by("username")
+        rows = []
+        for user in privileged_users[:8]:
+            rows.append(
+                {
+                    "cells": [
+                        {"value": user.username, "subvalue": user.email or "Sin correo"},
+                        {
+                            "value": "Superusuario" if user.is_superuser else "Staff",
+                            "badge": True,
+                            "tone": "emerald" if user.is_superuser else "amber",
+                        },
+                        {"value": "Activo" if user.is_active else "Inactivo", "badge": True, "tone": "cyan" if user.is_active else "rose"},
+                        {"value": user.last_login.strftime("%d/%m/%Y %H:%M") if user.last_login else "Sin ingreso"},
+                    ]
+                }
+            )
+
+        return {
+            "stats": [
+                {"label": "Staff", "value": User.objects.filter(is_staff=True).count()},
+                {"label": "Superusuarios", "value": User.objects.filter(is_superuser=True).count()},
+                {"label": "Usuarios activos", "value": User.objects.filter(is_active=True).count()},
+                {"label": "Asignaciones abiertas", "value": Asignacion.objects.filter(estado_asignacion=Asignacion.EstadoAsignacion.ACTIVA).count()},
+            ],
+            "module_actions": [
+                {"label": "Gestionar grupos", "url": reverse("admin:auth_group_changelist"), "kind": "primary"},
+                {"label": "Ver usuarios", "url": reverse("admin:auth_user_changelist"), "kind": "secondary"},
+            ],
+            "table_title": "Cuentas con privilegios",
+            "table_columns": ["Usuario", "Nivel", "Estado", "Ultimo acceso"],
+            "table_rows": rows,
+            "table_empty_message": "No hay cuentas staff para revisar.",
+            "info_panels": [
+                {
+                    "title": "Puntos de control",
+                    "items": [
+                        {"label": "Revisa superusuarios", "value": "Solo los estrictamente necesarios"},
+                        {"label": "Usa grupos", "value": "Permisos mas faciles de mantener"},
+                        {"label": "Monitorea ultimo acceso", "value": "Detecta cuentas dormidas"},
+                    ],
+                }
+            ],
+        }
+
+    def build_reportes_payload(self):
+        valor_total = Activo.objects.aggregate(total=Sum("valor")).get("total") or 0
+        activos_por_estado = (
+            Activo.objects.values("estado_activo__nombre")
+            .annotate(total=Count("id"))
+            .order_by("-total", "estado_activo__nombre")[:6]
+        )
+        asignaciones_por_mes = (
+            Asignacion.objects.annotate(mes=TruncMonth("fecha_asignacion"))
+            .values("mes")
+            .annotate(total=Count("id"))
+            .order_by("-mes")[:6]
+        )
+        rows = []
+        for item in activos_por_estado:
+            rows.append(
+                {
+                    "cells": [
+                        {"value": item["estado_activo__nombre"] or "Sin estado"},
+                        {"value": item["total"]},
+                        {
+                            "value": "Disponible" if (item["estado_activo__nombre"] or "").lower() == "disponible" else "Seguimiento",
+                            "badge": True,
+                            "tone": "emerald" if (item["estado_activo__nombre"] or "").lower() == "disponible" else "slate",
+                        },
+                    ]
+                }
+            )
+
+        month_panel_items = []
+        for item in asignaciones_por_mes:
+            if item["mes"]:
+                month_panel_items.append({"label": item["mes"].strftime("%b %Y"), "value": item["total"]})
+
+        areas = (
+            Colaborador.objects.values("area__nombre")
+            .annotate(total=Count("id"))
+            .order_by("-total", "area__nombre")[:5]
+        )
+
+        return {
+            "stats": [
+                {"label": "Valor inventario", "value": f"${valor_total}"},
+                {"label": "Activos disponibles", "value": Activo.objects.filter(estado_activo__permite_asignacion=True).count()},
+                {"label": "Activos asignados", "value": Activo.objects.filter(estado_activo__nombre__iexact="Asignado").count()},
+                {"label": "Asignaciones totales", "value": Asignacion.objects.count()},
+            ],
+            "module_actions": [
+                {"label": "Abrir dashboard", "url": reverse("dashboard-inicio"), "kind": "primary"},
+                {"label": "Ir a asignaciones", "url": reverse("asignaciones:lista"), "kind": "secondary"},
+            ],
+            "table_title": "Activos por estado",
+            "table_columns": ["Estado", "Total", "Lectura"],
+            "table_rows": rows,
+            "table_empty_message": "No hay datos de estado para mostrar.",
+            "info_panels": [
+                {"title": "Asignaciones por mes", "items": month_panel_items or [{"label": "Sin movimientos", "value": "-"}]},
+                {
+                    "title": "Colaboradores por area",
+                    "items": [{"label": item["area__nombre"] or "Sin area", "value": item["total"]} for item in areas] or [{"label": "Sin datos", "value": "-"}],
+                },
+            ],
+        }
+
+    def build_inventario_payload(self):
+        activos = (
+            Activo.objects.select_related("tipo_activo", "estado_activo")
+            .order_by("-created_at", "-id")[:8]
+        )
+        rows = []
+        for activo in activos:
+            rows.append(
+                {
+                    "cells": [
+                        {"value": activo.codigo, "url": reverse("activos:detalle", args=[activo.pk]), "subvalue": str(activo.tipo_activo)},
+                        {"value": f"{activo.marca} {activo.modelo}".strip(), "subvalue": f"Serie: {activo.serie}"},
+                        {
+                            "value": activo.estado_activo.nombre,
+                            "badge": True,
+                            "tone": "emerald" if activo.estado_activo.permite_asignacion else "cyan" if activo.estado_activo.nombre.lower() == "asignado" else "amber",
+                        },
+                        {"value": activo.created_at.strftime("%d/%m/%Y")},
+                    ]
+                }
+            )
+
+        estados = (
+            Activo.objects.values("estado_activo__nombre")
+            .annotate(total=Count("id"))
+            .order_by("-total", "estado_activo__nombre")[:5]
+        )
+        tipos = (
+            Activo.objects.values("tipo_activo__nombre")
+            .annotate(total=Count("id"))
+            .order_by("-total", "tipo_activo__nombre")[:5]
+        )
+
+        return {
+            "stats": [
+                {"label": "Total activos", "value": Activo.objects.count()},
+                {"label": "Disponibles", "value": Activo.objects.filter(estado_activo__permite_asignacion=True).count()},
+                {"label": "Con fotografia", "value": Activo.objects.filter(fotos__isnull=False).distinct().count()},
+                {"label": "Tipos registrados", "value": TipoActivo.objects.count()},
+            ],
+            "module_actions": [
+                {"label": "Ver inventario completo", "url": reverse("activos:lista"), "kind": "primary"},
+                {"label": "Crear asignacion", "url": reverse("asignaciones:nueva"), "kind": "secondary"},
+            ],
+            "table_title": "Ultimos activos incorporados",
+            "table_columns": ["Codigo", "Equipo", "Estado", "Alta"],
+            "table_rows": rows,
+            "table_empty_message": "No hay activos para mostrar.",
+            "info_panels": [
+                {
+                    "title": "Inventario por estado",
+                    "items": [{"label": item["estado_activo__nombre"] or "Sin estado", "value": item["total"]} for item in estados] or [{"label": "Sin datos", "value": "-"}],
+                },
+                {
+                    "title": "Inventario por tipo",
+                    "items": [{"label": item["tipo_activo__nombre"] or "Sin tipo", "value": item["total"]} for item in tipos] or [{"label": "Sin datos", "value": "-"}],
+                },
+            ],
+        }
+
+    def build_auditoria_payload(self):
+        eventos = (
+            EventoActivo.objects.select_related("activo", "tipo_evento", "usuario_responsable")
+            .order_by("-fecha_evento", "-id")[:8]
+        )
+        rows = []
+        for evento in eventos:
+            rows.append(
+                {
+                    "cells": [
+                        {"value": evento.activo.codigo, "url": reverse("activos:detalle", args=[evento.activo_id]), "subvalue": str(evento.tipo_evento)},
+                        {"value": evento.detalle[:80] + ("..." if len(evento.detalle) > 80 else "")},
+                        {"value": evento.usuario_responsable.get_username()},
+                        {"value": evento.fecha_evento.strftime("%d/%m/%Y %H:%M")},
+                    ]
+                }
+            )
+
+        ultimas_asignaciones = Asignacion.objects.select_related("colaborador").order_by("-updated_at", "-id")[:5]
+
+        return {
+            "stats": [
+                {"label": "Eventos de activo", "value": EventoActivo.objects.count()},
+                {"label": "Asignaciones activas", "value": Asignacion.objects.filter(estado_asignacion=Asignacion.EstadoAsignacion.ACTIVA).count()},
+                {"label": "Asignaciones cerradas", "value": Asignacion.objects.filter(estado_asignacion=Asignacion.EstadoAsignacion.CERRADA).count()},
+                {"label": "Activos con eventos", "value": EventoActivo.objects.values("activo_id").distinct().count()},
+            ],
+            "module_actions": [
+                {"label": "Ver activos", "url": reverse("activos:lista"), "kind": "primary"},
+                {"label": "Ir a asignaciones", "url": reverse("asignaciones:lista"), "kind": "secondary"},
+            ],
+            "table_title": "Eventos recientes de activos",
+            "table_columns": ["Activo", "Detalle", "Usuario", "Fecha"],
+            "table_rows": rows,
+            "table_empty_message": "No hay eventos registrados todavia.",
+            "info_panels": [
+                {
+                    "title": "Ultimas asignaciones tocadas",
+                    "items": [
+                        {"label": item.codigo_asignacion or "Sin codigo", "value": item.colaborador.apellidos, "url": reverse("asignaciones:lista")}
+                        for item in ultimas_asignaciones
+                    ] or [{"label": "Sin movimientos", "value": "-"}],
+                }
+            ],
+        }
+
+
+class Admin2CatalogsContextMixin(Admin2AccessMixin, Admin2BaseContextMixin):
+    catalog_slug = ""
+    template_name = "admin2/catalogo_lista.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.catalog_slug = kwargs["catalog_slug"]
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_catalog_config(self):
+        try:
+            return CATALOG_CONFIG[self.catalog_slug]
+        except KeyError as exc:
+            raise Http404("Catalogo no encontrado.") from exc
+
+    def get_catalog_model(self):
+        return self.get_catalog_config()["model"]
+
+    def get_catalog_queryset(self):
+        queryset = self.get_catalog_model().objects.all()
+        query = self.request.GET.get("q", "").strip()
+        estado = self.request.GET.get("estado", "").strip()
+
+        if query:
+            queryset = queryset.filter(nombre__icontains=query)
+        if estado == "activos":
+            queryset = queryset.filter(activo=True)
+        elif estado == "inactivos":
+            queryset = queryset.filter(activo=False)
+        return queryset.order_by("nombre")
+
+    def get_catalog_cards(self):
+        cards = super().get_catalog_cards()
+        for card in cards:
+            card["is_active"] = card["slug"] == self.catalog_slug
+        return cards
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        config = self.get_catalog_config()
+        context["catalog"] = config
+        context["catalog_slug"] = self.catalog_slug
+        context["catalog_cards"] = self.get_catalog_cards()
+        context["catalog_query"] = self.request.GET.get("q", "").strip()
+        context["catalog_estado"] = self.request.GET.get("estado", "").strip()
+        context["admin2_page_title"] = config["title"]
+        context["admin2_page_subtitle"] = "Catalogos administrados desde /admin2"
+        return context
+
+
+class Admin2CatalogListView(Admin2CatalogsContextMixin, TemplateView):
+    template_name = "admin2/catalogo_lista.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        config = self.get_catalog_config()
+        objects = list(self.get_catalog_queryset())
+        context["catalog_columns"] = config["columns"]
+        context["catalog_has_assignation_column"] = "permite_asignacion" in config["columns"]
+        context["catalog_objects"] = objects
+        context["catalog_total"] = len(objects)
+        context["catalog_active_total"] = sum(1 for item in objects if getattr(item, "activo", False))
+        context["create_url"] = reverse("admin2-catalogo-crear", args=[self.catalog_slug])
+        context["admin_catalog_url"] = reverse(config["admin_changelist"])
+        return context
+
+
+class Admin2CatalogFormView(Admin2CatalogsContextMixin, FormView):
+    template_name = "admin2/catalogo_formulario.html"
+    object = None
+    action_label = "Guardar"
+
+    def get_form_class(self):
+        config = self.get_catalog_config()
+        form_class = modelform_factory(
+            config["model"],
+            fields=config["fields"],
+        )
+        if "descripcion" in form_class.base_fields:
+            form_class.base_fields["descripcion"].widget = forms.Textarea(
+                attrs={"rows": 4}
+            )
+        for field_name, field in form_class.base_fields.items():
+            if isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs.update({"class": "admin2-checkbox"})
+            else:
+                base_class = "admin2-input"
+                if isinstance(field.widget, forms.Textarea):
+                    base_class = "admin2-textarea"
+                field.widget.attrs.update({"class": base_class})
+        return form_class
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        if self.object is not None:
+            kwargs["instance"] = self.object
+        return kwargs
+
+    def get_success_url(self):
+        return reverse("admin2-catalogo-lista", args=[self.catalog_slug])
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        config = self.get_catalog_config()
+        context["catalog"] = config
+        context["catalog_slug"] = self.catalog_slug
+        context["catalog_cards"] = self.get_catalog_cards()
+        context["form_title"] = f"{self.action_label} {config['singular'].lower()}"
+        context["form_submit_label"] = self.action_label
+        context["back_url"] = self.get_success_url()
+        context["admin2_page_title"] = config["title"]
+        context["admin2_page_subtitle"] = f"{self.action_label} registro en {config['title']}"
+        return context
+
+    def form_valid(self, form):
+        self.object = form.save()
+        messages.success(
+            self.request,
+            f"{self.get_catalog_config()['singular']} guardado correctamente.",
+        )
+        return redirect(self.get_success_url())
+
+
+class Admin2CatalogCreateView(Admin2CatalogFormView):
+    action_label = "Crear"
+
+
+class Admin2CatalogUpdateView(Admin2CatalogFormView):
+    action_label = "Actualizar"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.object = get_object_or_404(
+            self.get_catalog_model(),
+            pk=kwargs["pk"],
+        )
+        return super().dispatch(request, *args, **kwargs)
+
+
+class Admin2UsuariosView(Admin2ModuleView):
+    module_slug = "usuarios"
+
+
+class Admin2CatalogosView(Admin2ModuleView):
+    module_slug = "catalogos"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["catalog_cards"] = self.get_catalog_cards()
+        return context
+
+
+class Admin2SeguridadView(Admin2ModuleView):
+    module_slug = "seguridad"
+
+
+class Admin2ReportesView(Admin2ModuleView):
+    module_slug = "reportes"
+
+
+class Admin2InventarioView(Admin2ModuleView):
+    module_slug = "inventario"
+
+
+class Admin2AuditoriaView(Admin2ModuleView):
+    module_slug = "auditoria"

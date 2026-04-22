@@ -1,0 +1,87 @@
+{% extends "admin2/base.html" %}
+
+{% block admin2_content %}
+<section class="admin2-panel admin2-panel--hero">
+    <div class="admin2-hero admin2-hero--module">
+        <div>
+            <p class="admin2-hero__label">Edicion administrativa</p>
+            <h2>{{ form_title }}</h2>
+            <p class="admin2-hero__copy">{{ catalog.description }}</p>
+        </div>
+
+        <div class="admin2-module-stats">
+            <article class="admin2-module-stats__card">
+                <span>Catalogo</span>
+                <strong>{{ catalog.title }}</strong>
+            </article>
+            <article class="admin2-module-stats__card">
+                <span>Destino</span>
+                <strong>/admin2</strong>
+            </article>
+        </div>
+    </div>
+</section>
+
+<div class="admin2-content-grid">
+    <section class="admin2-panel">
+        <div class="admin2-sectionhead">
+            <div>
+                <p class="admin2-sectionhead__eyebrow">Formulario</p>
+                <h2>{{ form_submit_label }} registro</h2>
+            </div>
+        </div>
+
+        <div class="admin2-formwrap">
+            <form method="post" class="admin2-form">
+                {% csrf_token %}
+
+                {% for field in form %}
+                    <div class="admin2-field">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <small>{{ field.help_text }}</small>
+                        {% endif %}
+                        {% for error in field.errors %}
+                            <p class="admin2-error">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+
+                {% if form.non_field_errors %}
+                    <div class="admin2-errorbox">
+                        {% for error in form.non_field_errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="admin2-actionrow">
+                    <button type="submit" class="admin2-button is-primary">{{ form_submit_label }}</button>
+                    <a href="{{ back_url }}" class="admin2-button is-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <div class="admin2-stack">
+        <section class="admin2-panel">
+            <div class="admin2-sectionhead">
+                <div>
+                    <p class="admin2-sectionhead__eyebrow">Navegacion</p>
+                    <h2>Otros catalogos</h2>
+                </div>
+            </div>
+
+            <div class="admin2-panel-list">
+                {% for card in catalog_cards %}
+                    <a href="{{ card.url }}" class="admin2-panel-list__item {% if card.is_active %}is-current{% endif %}">
+                        <span>{{ card.title }}</span>
+                        <strong>{{ card.count }}</strong>
+                    </a>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

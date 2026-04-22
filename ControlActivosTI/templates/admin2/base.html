@@ -1,0 +1,69 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ admin2_page_title|default:"Admin2" }} - ControlActivosTI</title>
+    <link rel="stylesheet" href="{% static 'admin2/css/admin2.css' %}">
+</head>
+<body class="admin2-body">
+    <header class="admin2-topbar">
+        <div class="admin2-topbar__left">
+            <a href="{% url 'admin2-inicio' %}" class="admin2-brand">
+                <span class="admin2-brand__icon">CA</span>
+                <span class="admin2-brand__title">Consola administrativa</span>
+            </a>
+        </div>
+        <div class="admin2-topbar__right">
+            <a href="{% url 'dashboard-inicio' %}" class="admin2-toplink">Dashboard</a>
+            <a href="/admin/" class="admin2-toplink">Django Admin</a>
+            <span class="admin2-user">{{ request.user.username }}</span>
+        </div>
+    </header>
+
+    <div class="admin2-layout">
+        <aside class="admin2-sidebar">
+            <div class="admin2-sidebar__section">
+                <p class="admin2-sidebar__label">Navegacion</p>
+                <nav class="admin2-nav">
+                    <a href="{% url 'admin2-inicio' %}" class="admin2-nav__link {% if request.path == '/admin2/' %}is-active{% endif %}">Inicio</a>
+                    {% for item in admin2_modules %}
+                        <a href="{{ item.url }}" class="admin2-nav__link {% if request.path == item.url %}is-active{% endif %}">
+                            <span class="admin2-nav__pill">{{ item.icon_label }}</span>
+                            <span>{{ item.title }}</span>
+                        </a>
+                    {% endfor %}
+                </nav>
+            </div>
+
+            <div class="admin2-sidebar__section">
+                <p class="admin2-sidebar__label">Accesos rapidos</p>
+                <div class="admin2-sidebar__shortcuts">
+                    <a href="{% url 'activos:lista' %}" class="admin2-chip">Activos</a>
+                    <a href="{% url 'colaboradores:lista' %}" class="admin2-chip">Colaboradores</a>
+                    <a href="{% url 'asignaciones:lista' %}" class="admin2-chip">Asignaciones</a>
+                    <a href="{% url 'asignaciones:nueva' %}" class="admin2-chip">Nueva asignacion</a>
+                </div>
+            </div>
+        </aside>
+
+        <main class="admin2-main">
+            <section class="admin2-pagehead">
+                <p class="admin2-pagehead__eyebrow">{{ admin2_page_subtitle }}</p>
+                <h1>{{ admin2_page_title }}</h1>
+            </section>
+
+            {% if messages %}
+                <section class="admin2-messages">
+                    {% for message in messages %}
+                        <div class="admin2-message">{{ message }}</div>
+                    {% endfor %}
+                </section>
+            {% endif %}
+
+            {% block admin2_content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

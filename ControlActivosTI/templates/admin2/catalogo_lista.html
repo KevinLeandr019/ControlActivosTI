@@ -1,0 +1,134 @@
+{% extends "admin2/base.html" %}
+
+{% block admin2_content %}
+<section class="admin2-panel admin2-panel--hero">
+    <div class="admin2-hero admin2-hero--module">
+        <div>
+            <p class="admin2-hero__label">Catalogo administrable</p>
+            <h2>{{ catalog.title }}</h2>
+            <p class="admin2-hero__copy">{{ catalog.description }}</p>
+
+            <div class="admin2-actionrow">
+                <a href="{{ create_url }}" class="admin2-button is-primary">Nuevo registro</a>
+                <a href="{{ admin_catalog_url }}" class="admin2-button is-secondary">Abrir en Django Admin</a>
+                <a href="{% url 'admin2-catalogos' %}" class="admin2-button is-secondary">Volver a catalogos</a>
+            </div>
+        </div>
+
+        <div class="admin2-module-stats">
+            <article class="admin2-module-stats__card">
+                <span>Total visible</span>
+                <strong>{{ catalog_total }}</strong>
+            </article>
+            <article class="admin2-module-stats__card">
+                <span>Activos</span>
+                <strong>{{ catalog_active_total }}</strong>
+            </article>
+            <article class="admin2-module-stats__card">
+                <span>Mantenimiento</span>
+                <strong>/admin2</strong>
+            </article>
+        </div>
+    </div>
+</section>
+
+<div class="admin2-content-grid">
+    <section class="admin2-panel">
+        <div class="admin2-sectionhead">
+            <div>
+                <p class="admin2-sectionhead__eyebrow">Filtro</p>
+                <h2>Buscar y revisar registros</h2>
+            </div>
+        </div>
+
+        <div class="admin2-filterwrap">
+            <form method="get" class="admin2-filterform">
+                <div class="admin2-field">
+                    <label for="catalog-query">Busqueda</label>
+                    <input id="catalog-query" type="text" name="q" value="{{ catalog_query }}" placeholder="Buscar por nombre">
+                </div>
+                <div class="admin2-field">
+                    <label for="catalog-estado">Estado</label>
+                    <select id="catalog-estado" name="estado">
+                        <option value="">Todos</option>
+                        <option value="activos" {% if catalog_estado == 'activos' %}selected{% endif %}>Activos</option>
+                        <option value="inactivos" {% if catalog_estado == 'inactivos' %}selected{% endif %}>Inactivos</option>
+                    </select>
+                </div>
+                <div class="admin2-filterform__actions">
+                    <button type="submit" class="admin2-button is-primary">Aplicar</button>
+                    <a href="{% url 'admin2-catalogo-lista' catalog_slug %}" class="admin2-button is-secondary">Limpiar</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="admin2-tablewrap">
+            <table class="admin2-table">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        {% if catalog_has_assignation_column %}<th>Permite asignacion</th>{% endif %}
+                        <th>Activo</th>
+                        <th>Actualizado</th>
+                        <th>Accion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for obj in catalog_objects %}
+                        <tr>
+                            <td>
+                                {{ obj.nombre }}
+                                {% if obj.descripcion %}
+                                    <small>{{ obj.descripcion|truncatechars:90 }}</small>
+                                {% endif %}
+                            </td>
+                            {% if catalog_has_assignation_column %}
+                                <td>
+                                    <span class="admin2-badge tone-{% if obj.permite_asignacion %}emerald{% else %}slate{% endif %}">
+                                        {% if obj.permite_asignacion %}Si{% else %}No{% endif %}
+                                    </span>
+                                </td>
+                            {% endif %}
+                            <td>
+                                <span class="admin2-badge tone-{% if obj.activo %}emerald{% else %}rose{% endif %}">
+                                    {% if obj.activo %}Activo{% else %}Inactivo{% endif %}
+                                </span>
+                            </td>
+                            <td>{{ obj.updated_at|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <a href="{% url 'admin2-catalogo-editar' catalog_slug obj.pk %}" class="admin2-inline-action">
+                                    Editar
+                                </a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="{% if catalog_has_assignation_column %}5{% else %}4{% endif %}" class="is-empty">No hay registros para mostrar.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <div class="admin2-stack">
+        <section class="admin2-panel">
+            <div class="admin2-sectionhead">
+                <div>
+                    <p class="admin2-sectionhead__eyebrow">Otros catalogos</p>
+                    <h2>Navegacion</h2>
+                </div>
+            </div>
+
+            <div class="admin2-panel-list">
+                {% for card in catalog_cards %}
+                    <a href="{{ card.url }}" class="admin2-panel-list__item {% if card.is_active %}is-current{% endif %}">
+                        <span>{{ card.title }}</span>
+                        <strong>{{ card.count }}</strong>
+                    </a>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

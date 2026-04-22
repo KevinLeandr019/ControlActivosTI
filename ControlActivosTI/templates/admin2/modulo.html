@@ -1,0 +1,157 @@
+{% extends "admin2/base.html" %}
+
+{% block admin2_content %}
+<section class="admin2-panel admin2-panel--hero">
+    <div class="admin2-hero admin2-hero--module">
+        <div>
+            <p class="admin2-hero__label">{{ module.subtitle }}</p>
+            <h2>{{ module.title }}</h2>
+            <p class="admin2-hero__copy">{{ module.description }}</p>
+
+            {% if module_actions %}
+                <div class="admin2-actionrow">
+                    {% for action in module_actions %}
+                        <a href="{{ action.url }}" class="admin2-button {% if action.kind == 'primary' %}is-primary{% else %}is-secondary{% endif %}">
+                            {{ action.label }}
+                        </a>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="admin2-module-stats">
+            {% for item in stats %}
+                <article class="admin2-module-stats__card">
+                    <span>{{ item.label }}</span>
+                    <strong>{{ item.value }}</strong>
+                </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<div class="admin2-content-grid">
+    <section class="admin2-panel">
+        <div class="admin2-sectionhead">
+            <div>
+                <p class="admin2-sectionhead__eyebrow">Contenido</p>
+                <h2>{{ table_title }}</h2>
+            </div>
+        </div>
+
+        <div class="admin2-tablewrap">
+            <table class="admin2-table">
+                <thead>
+                    <tr>
+                        {% for column in table_columns %}
+                            <th>{{ column }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in table_rows %}
+                        <tr>
+                            {% for cell in row.cells %}
+                                <td>
+                                    {% if cell.url %}
+                                        <a href="{{ cell.url }}" class="admin2-celllink">
+                                            {{ cell.value }}
+                                        </a>
+                                    {% elif cell.badge %}
+                                        <span class="admin2-badge tone-{{ cell.tone|default:'slate' }}">
+                                            {{ cell.value }}
+                                        </span>
+                                    {% else %}
+                                        {{ cell.value }}
+                                    {% endif %}
+
+                                    {% if cell.subvalue %}
+                                        <small>{{ cell.subvalue }}</small>
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="{{ table_columns|length }}" class="is-empty">{{ table_empty_message }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <div class="admin2-stack">
+        {% if catalog_cards %}
+            <section class="admin2-panel">
+                <div class="admin2-sectionhead">
+                    <div>
+                        <p class="admin2-sectionhead__eyebrow">Gestion directa</p>
+                        <h2>Catalogos ya disponibles en /admin2</h2>
+                    </div>
+                </div>
+
+                <div class="admin2-console-grid admin2-console-grid--compact">
+                    {% for card in catalog_cards %}
+                        <a href="{{ card.url }}" class="admin2-console-tile admin2-console-tile--compact">
+                            <span class="admin2-console-tile__icon">CT</span>
+                            <span class="admin2-console-tile__eyebrow">{{ card.title }}</span>
+                            <strong>{{ card.count }} registros</strong>
+                            <p>{{ card.description }}</p>
+                        </a>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+
+        {% for panel in info_panels %}
+            <section class="admin2-panel">
+                <div class="admin2-sectionhead">
+                    <div>
+                        <p class="admin2-sectionhead__eyebrow">Apoyo</p>
+                        <h2>{{ panel.title }}</h2>
+                    </div>
+                </div>
+
+                <div class="admin2-panel-list">
+                    {% for item in panel.items %}
+                        {% if item.url %}
+                            <a href="{{ item.url }}" class="admin2-panel-list__item">
+                                <span>{{ item.label }}</span>
+                                <strong>{{ item.value }}</strong>
+                            </a>
+                        {% else %}
+                            <div class="admin2-panel-list__item">
+                                <span>{{ item.label }}</span>
+                                <strong>{{ item.value }}</strong>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </section>
+        {% endfor %}
+
+        <section class="admin2-panel">
+            <div class="admin2-sectionhead">
+                <div>
+                    <p class="admin2-sectionhead__eyebrow">Navegacion</p>
+                    <h2>Otros modulos</h2>
+                </div>
+            </div>
+
+            <div class="admin2-console-grid admin2-console-grid--compact">
+                {% for item in admin2_modules %}
+                    {% if item.title != module.title %}
+                        <a href="{{ item.url }}" class="admin2-console-tile admin2-console-tile--compact">
+                            <span class="admin2-console-tile__icon">{{ item.icon_label }}</span>
+                            <span class="admin2-console-tile__eyebrow">{{ item.eyebrow }}</span>
+                            <strong>{{ item.title }}</strong>
+                            <p>{{ item.description }}</p>
+                        </a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}
