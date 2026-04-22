@@ -106,6 +106,8 @@ class AsignacionDevolucionView(LoginRequiredMixin, UpdateView):
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         form = self.get_form()
+        form.instance.estado_asignacion = Asignacion.EstadoAsignacion.CERRADA
+        form.instance.usuario_recepcion = request.user
         formset = AsignacionDetalleDevolucionFormSet(
             request.POST,
             instance=self.object,

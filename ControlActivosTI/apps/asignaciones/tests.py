@@ -9,6 +9,7 @@ from apps.catalogos.models import Area, Cargo, EstadoActivo, TipoActivo, Ubicaci
 from apps.colaboradores.models import Colaborador
 
 from apps.asignaciones.forms import AsignacionCreateForm
+from apps.asignaciones.models import Asignacion, AsignacionDetalle
 
 
 class AsignacionCreateFormTests(TestCase):
@@ -24,6 +25,10 @@ class AsignacionCreateFormTests(TestCase):
         self.estado_disponible = EstadoActivo.objects.create(
             nombre="Disponible",
             permite_asignacion=True,
+        )
+        self.estado_asignado = EstadoActivo.objects.create(
+            nombre="Asignado",
+            permite_asignacion=False,
         )
         self.estado_no_disponible = EstadoActivo.objects.create(
             nombre="Danado",
@@ -88,3 +93,49 @@ class AsignacionCreateFormTests(TestCase):
         self.assertContains(response, "Marca / Modelo")
         self.assertContains(response, 'type="checkbox"', html=False)
         self.assertContains(response, f'value="{self.activo_disponible.pk}"', html=False)
+
+    def test_devolucion_view_accepts_post_for_active_detail(self):
+        asignacion = Asignacion.objects.create(
+            colaborador=self.colaborador,
+            fecha_asignacion=date(2026, 4, 20),
+            observaciones_entrega="Entrega inicial",
+            usuario_responsable=self.user,
+        )
+        detalle = AsignacionDetalle.objects.create(
+            asignacion=asignacion,
+            activo=self.activo_disponible,
+            orden=1,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("asignaciones:devolver", args=[asignacion.pk]))
+        formset = response.context_data["formset"]
+
+        payload = {
+            "fecha_devolucion": "2026-04-21",
+            "observaciones_devolucion": "Equipo recibido",
+            "detalles-TOTAL_FORMS": str(formset.total_form_count()),
+            "detalles-INITIAL_FORMS": str(formset.initial_form_count()),
+            "detalles-MIN_NUM_FORMS": "0",
+            "detalles-MAX_NUM_FORMS": "1000",
+            "detalles-0-id": str(detalle.pk),
+            "detalles-0-asignacion": str(asignacion.pk),
+            "detalles-0-estado_activo_devolucion": str(self.estado_no_disponible.pk),
+            "detalles-0-observaciones_devolucion": "Sin novedades",
+        }
+
+        post_response = self.client.post(
+            reverse("asignaciones:devolver", args=[asignacion.pk]),
+            payload,
+        )
+
+        self.assertEqual(post_response.status_code, 302)
+
+        asignacion.refresh_from_db()
+        detalle.refresh_from_db()
+        self.activo_disponible.refresh_from_db()
+
+        self.assertEqual(asignacion.estado_asignacion, Asignacion.EstadoAsignacion.CERRADA)
+        self.assertFalse(detalle.activa)
+        self.assertEqual(detalle.estado_activo_devolucion, self.estado_no_disponible)
+        self.assertEqual(self.activo_disponible.estado_activo, self.estado_no_disponible)

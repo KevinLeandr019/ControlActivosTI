@@ -224,6 +224,14 @@ class AsignacionDetalleDevolucionForm(forms.ModelForm):
         self.fields["estado_activo_devolucion"].widget.attrs["class"] = BASE_CLASS
         self.fields["observaciones_devolucion"].widget.attrs["class"] = TEXTAREA_CLASS
 
+    def clean(self):
+        cleaned_data = super().clean()
+        # Durante la devolucion el detalle deja de estar activo; marcamos este
+        # estado antes de la validacion del modelo para evitar reglas de
+        # asignacion activa sobre activos ya entregados.
+        self.instance.activa = False
+        return cleaned_data
+
 
 AsignacionDetalleDevolucionFormSet = inlineformset_factory(
     Asignacion,
