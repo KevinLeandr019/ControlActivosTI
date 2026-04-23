@@ -1,10 +1,9 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, Sum
-from django.db.models.functions import TruncMonth
 from django.views.generic import TemplateView
 
 from apps.activos.models import Activo
-from apps.asignaciones.models import Asignacion
+from apps.asignaciones.models import Asignacion, AsignacionDetalle
 from apps.colaboradores.models import Colaborador
 
 
@@ -40,11 +39,17 @@ class InicioView(LoginRequiredMixin, TemplateView):
             .annotate(total=Count("id"))
             .order_by("-total", "tipo_activo__nombre")[:8]
         )
-        asignaciones_por_mes = list(
-            Asignacion.objects.annotate(mes=TruncMonth("fecha_asignacion"))
-            .values("mes")
+        activos_por_ceco = list(
+            AsignacionDetalle.objects.filter(
+                activa=True,
+                asignacion__estado_asignacion=Asignacion.EstadoAsignacion.ACTIVA,
+            )
+            .values(
+                "asignacion__centro_costo_codigo",
+                "asignacion__centro_costo_nombre",
+            )
             .annotate(total=Count("id"))
-            .order_by("mes")
+            .order_by("-total", "asignacion__centro_costo_codigo")[:10]
         )
         colaboradores_por_area = list(
             Colaborador.objects.values("area__nombre")
@@ -107,12 +112,10 @@ class InicioView(LoginRequiredMixin, TemplateView):
                     item["tipo_activo__nombre"] for item in activos_por_tipo
                 ],
                 "activos_tipo_data": [item["total"] for item in activos_por_tipo],
-                "asignaciones_mes_labels": [
-                    item["mes"].strftime("%b %Y") for item in asignaciones_por_mes if item["mes"]
+                "cecos_labels": [
+                    self._formatear_ceco_label(item) for item in activos_por_ceco
                 ],
-                "asignaciones_mes_data": [
-                    item["total"] for item in asignaciones_por_mes if item["mes"]
-                ],
+                "cecos_data": [item["total"] for item in activos_por_ceco],
                 "colaboradores_area_labels": [
                     item["area__nombre"] for item in colaboradores_por_area
                 ],
@@ -122,3 +125,8 @@ class InicioView(LoginRequiredMixin, TemplateView):
             }
         )
         return context
+
+    def _formatear_ceco_label(self, item):
+        codigo = item["asignacion__centro_costo_codigo"] or "Sin CECO"
+        nombre = item["asignacion__centro_costo_nombre"]
+        return f"{codigo} - {nombre}" if nombre else codigo

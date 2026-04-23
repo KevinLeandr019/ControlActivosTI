@@ -3,7 +3,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
-from django.views.generic import CreateView, ListView, UpdateView
+from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
 from apps.actas.services import generar_o_actualizar_acta
 
@@ -25,6 +25,7 @@ class AsignacionListView(LoginRequiredMixin, ListView):
         return (
             Asignacion.objects.select_related(
                 "colaborador",
+                "centro_costo",
                 "usuario_responsable",
                 "usuario_recepcion",
             )
@@ -33,6 +34,31 @@ class AsignacionListView(LoginRequiredMixin, ListView):
                 "detalles__activo__estado_activo",
             )
             .order_by("-fecha_asignacion", "-id")
+        )
+
+
+class AsignacionDetailView(LoginRequiredMixin, DetailView):
+    model = Asignacion
+    template_name = "asignaciones/detalle.html"
+    context_object_name = "asignacion"
+
+    def get_queryset(self):
+        return (
+            Asignacion.objects.select_related(
+                "colaborador",
+                "colaborador__empresa",
+                "colaborador__area",
+                "colaborador__cargo",
+                "colaborador__ubicacion",
+                "centro_costo",
+                "usuario_responsable",
+                "usuario_recepcion",
+            )
+            .prefetch_related(
+                "detalles__activo__tipo_activo",
+                "detalles__activo__estado_activo",
+                "detalles__activo__fotos",
+            )
         )
 
 

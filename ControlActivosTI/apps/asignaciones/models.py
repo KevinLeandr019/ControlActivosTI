@@ -5,7 +5,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from apps.activos.models import Activo
-from apps.catalogos.models import EstadoActivo
+from apps.catalogos.models import CentroCosto, EstadoActivo
 from apps.colaboradores.models import Colaborador
 
 
@@ -27,6 +27,18 @@ class Asignacion(models.Model):
         on_delete=models.PROTECT,
         related_name="asignaciones",
     )
+    centro_costo = models.ForeignKey(
+        CentroCosto,
+        on_delete=models.PROTECT,
+        related_name="asignaciones",
+        null=True,
+        blank=True,
+        editable=False,
+        help_text="CECO historico copiado desde el colaborador al crear la asignacion.",
+    )
+    centro_costo_codigo = models.CharField(max_length=30, blank=True, editable=False, db_index=True)
+    centro_costo_nombre = models.CharField(max_length=150, blank=True, editable=False)
+    centro_costo_empresa = models.CharField(max_length=100, blank=True, editable=False)
     fecha_asignacion = models.DateField(default=timezone.now)
     observaciones_entrega = models.TextField(blank=True)
     usuario_responsable = models.ForeignKey(
@@ -66,6 +78,17 @@ class Asignacion(models.Model):
         if self.colaborador_id and self.colaborador.estado != Colaborador.EstadoColaborador.ACTIVO:
             raise ValidationError({"colaborador": "Solo se puede asignar a colaboradores activos."})
 
+        ceco = self.centro_costo if self.centro_costo_id else None
+        if self.colaborador_id:
+            ceco = ceco or getattr(self.colaborador, "centro_costo", None)
+            if not ceco:
+                raise ValidationError(
+                    {"colaborador": "El colaborador debe tener un CECO vigente antes de asignar activos."}
+                )
+
+        if ceco and (not ceco.activo or not ceco.acepta_asignaciones):
+            raise ValidationError({"centro_costo": "El CECO del colaborador no esta habilitado para asignaciones."})
+
         if self.estado_asignacion == self.EstadoAsignacion.ACTIVA:
             if self.fecha_devolucion:
                 raise ValidationError(
@@ -84,6 +107,8 @@ class Asignacion(models.Model):
                 )
 
     def save(self, *args, **kwargs):
+        if self.colaborador_id and not self.centro_costo_id:
+            self._copiar_ceco_desde_colaborador()
         self.full_clean()
         with transaction.atomic():
             super().save(*args, **kwargs)
@@ -92,6 +117,21 @@ class Asignacion(models.Model):
                 codigo = f"ASG-{anio}-{self.pk:05d}"
                 Asignacion.objects.filter(pk=self.pk).update(codigo_asignacion=codigo)
                 self.codigo_asignacion = codigo
+
+    def _copiar_ceco_desde_colaborador(self):
+        ceco = getattr(self.colaborador, "centro_costo", None)
+        if not ceco:
+            return
+        self.centro_costo = ceco
+        self.centro_costo_codigo = ceco.codigo
+        self.centro_costo_nombre = ceco.nombre
+        self.centro_costo_empresa = ceco.empresa.nombre if ceco.empresa_id else ""
+
+    @property
+    def centro_costo_snapshot(self):
+        if not self.centro_costo_codigo:
+            return "-"
+        return f"{self.centro_costo_codigo} - {self.centro_costo_nombre}"
 
     @property
     def nombre_colaborador_completo(self):

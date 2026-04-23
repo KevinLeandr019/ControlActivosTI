@@ -1,7 +1,7 @@
 from django.core.validators import RegexValidator
 from django.db import models
 
-from apps.catalogos.models import Area, Cargo, Empresa, Ubicacion
+from apps.catalogos.models import Area, Cargo, CentroCosto, Empresa, Ubicacion
 
 
 cedula_validator = RegexValidator(
@@ -48,6 +48,14 @@ class Colaborador(models.Model):
         related_name="colaboradores",
         null=True,
         blank=True,
+    )
+    centro_costo = models.ForeignKey(
+        CentroCosto,
+        on_delete=models.PROTECT,
+        related_name="colaboradores",
+        null=True,
+        blank=True,
+        help_text="CECO contable vigente del colaborador. Se copia a cada asignacion al crearla.",
     )
     estado = models.CharField(
         max_length=15,

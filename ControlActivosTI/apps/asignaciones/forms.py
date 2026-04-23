@@ -137,7 +137,7 @@ class AsignacionCreateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["colaborador"].queryset = (
-            Colaborador.objects.select_related("area", "cargo")
+            Colaborador.objects.select_related("area", "cargo", "centro_costo")
             .filter(estado=Colaborador.EstadoColaborador.ACTIVO)
             .order_by("apellidos", "nombres")
         )
@@ -161,6 +161,18 @@ class AsignacionCreateForm(forms.ModelForm):
         if not activos:
             raise forms.ValidationError("Debes seleccionar al menos un activo.")
         return activos
+
+    def clean_colaborador(self):
+        colaborador = self.cleaned_data["colaborador"]
+        ceco = colaborador.centro_costo
+
+        if not ceco:
+            raise forms.ValidationError("El colaborador debe tener un CECO vigente antes de asignar activos.")
+
+        if not ceco.activo or not ceco.acepta_asignaciones:
+            raise forms.ValidationError("El CECO del colaborador no esta habilitado para asignaciones.")
+
+        return colaborador
 
     def save(self, commit=True):
         if not commit:

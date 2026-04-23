@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Detalle de asignacion - ControlActivosTI{% endblock %}
+{% block page_title %}Detalle de asignacion{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <a href="{% url 'asignaciones:lista' %}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+            Volver a asignaciones
+        </a>
+
+        <div class="flex flex-wrap gap-2">
+            {% if asignacion.acta %}
+                <a href="{% url 'actas:descargar_por_asignacion' asignacion.pk %}" class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700">
+                    Descargar acta
+                </a>
+            {% endif %}
+
+            {% if asignacion.estado_asignacion == "ACTIVA" %}
+                <a href="{% url 'asignaciones:devolver' asignacion.pk %}" class="rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-cyan-700">
+                    Registrar devolucion
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-3">
+        <div class="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">Asignacion</p>
+                    <h2 class="mt-1 text-2xl font-bold text-slate-900">{{ asignacion.codigo_asignacion }}</h2>
+                </div>
+                {% if asignacion.estado_asignacion == "ACTIVA" %}
+                    <span class="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700">Activa</span>
+                {% else %}
+                    <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Cerrada</span>
+                {% endif %}
+            </div>
+
+            <div class="mt-6 grid gap-4 md:grid-cols-2">
+                <div>
+                    <p class="text-sm text-slate-500">Colaborador</p>
+                    <p class="font-medium text-slate-900">{{ asignacion.colaborador }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-slate-500">Cedula</p>
+                    <p class="font-medium text-slate-900">{{ asignacion.colaborador.cedula }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-slate-500">Empresa</p>
+                    <p class="font-medium text-slate-900">{{ asignacion.colaborador.empresa|default:"-" }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-slate-500">Area / Cargo</p>
+                    <p class="font-medium text-slate-900">{{ asignacion.colaborador.area|default:"-" }} / {{ asignacion.colaborador.cargo|default:"-" }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-slate-500">Fecha de asignacion</p>
+                    <p class="font-medium text-slate-900">{{ asignacion.fecha_asignacion }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-slate-500">Responsable TI</p>
+                    <p class="font-medium text-slate-900">{{ asignacion.usuario_responsable }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-slate-500">Fecha de devolucion</p>
+                    <p class="font-medium text-slate-900">{{ asignacion.fecha_devolucion|default:"-" }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-slate-500">Usuario recepcion</p>
+                    <p class="font-medium text-slate-900">{{ asignacion.usuario_recepcion|default:"-" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">CECO historico</p>
+            <p class="mt-2 text-xl font-bold text-slate-900">{{ asignacion.centro_costo_codigo|default:"-" }}</p>
+            <p class="mt-1 text-sm text-slate-600">{{ asignacion.centro_costo_nombre|default:"Sin CECO registrado" }}</p>
+            <div class="mt-5 space-y-3 text-sm">
+                <div>
+                    <p class="text-slate-500">Empresa CECO</p>
+                    <p class="font-medium text-slate-900">{{ asignacion.centro_costo_empresa|default:"-" }}</p>
+                </div>
+                <div>
+                    <p class="text-slate-500">Total activos</p>
+                    <p class="font-medium text-slate-900">{{ asignacion.total_activos }} activo{{ asignacion.total_activos|pluralize }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-2">
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 class="text-lg font-semibold text-slate-900">Observaciones de entrega</h3>
+            <p class="mt-3 text-sm text-slate-700">{{ asignacion.observaciones_entrega|default:"Sin observaciones." }}</p>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 class="text-lg font-semibold text-slate-900">Observaciones de devolucion</h3>
+            <p class="mt-3 text-sm text-slate-700">{{ asignacion.observaciones_devolucion|default:"Sin observaciones." }}</p>
+        </div>
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div class="border-b border-slate-200 px-6 py-4">
+            <h3 class="text-lg font-semibold text-slate-900">Activos de la asignacion</h3>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-50 text-left text-slate-600">
+                    <tr>
+                        <th class="px-4 py-3 font-semibold">Orden</th>
+                        <th class="px-4 py-3 font-semibold">Codigo</th>
+                        <th class="px-4 py-3 font-semibold">Articulo</th>
+                        <th class="px-4 py-3 font-semibold">Equipo</th>
+                        <th class="px-4 py-3 font-semibold">Serie</th>
+                        <th class="px-4 py-3 font-semibold">Estado</th>
+                        <th class="px-4 py-3 font-semibold">Estado final</th>
+                        <th class="px-4 py-3 font-semibold">Observaciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for detalle in asignacion.detalles.all %}
+                        <tr class="align-top text-slate-700">
+                            <td class="px-4 py-4">{{ detalle.orden }}</td>
+                            <td class="px-4 py-4">
+                                <a href="{% url 'activos:detalle' detalle.activo.pk %}" class="font-semibold text-cyan-700 hover:underline">
+                                    {{ detalle.activo.codigo }}
+                                </a>
+                            </td>
+                            <td class="px-4 py-4">{{ detalle.articulo_acta }}</td>
+                            <td class="px-4 py-4">{{ detalle.activo.marca }} {{ detalle.activo.modelo }}</td>
+                            <td class="px-4 py-4">{{ detalle.activo.serie|default:"S/N" }}</td>
+                            <td class="px-4 py-4">{{ detalle.activo.estado_activo }}</td>
+                            <td class="px-4 py-4">{{ detalle.estado_activo_devolucion|default:"-" }}</td>
+                            <td class="px-4 py-4">
+                                <div class="max-w-md text-slate-600">
+                                    {{ detalle.observaciones_acta }}
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="8" class="px-4 py-8 text-center text-slate-500">
+                                Esta asignacion no tiene activos registrados.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

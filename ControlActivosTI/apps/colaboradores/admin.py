@@ -14,6 +14,7 @@ class ColaboradorAdmin(admin.ModelAdmin):
         "area",
         "cargo",
         "ubicacion",
+        "centro_costo",
         "estado",
         "fecha_ingreso",
     )
@@ -22,6 +23,9 @@ class ColaboradorAdmin(admin.ModelAdmin):
         "apellidos",
         "cedula",
         "correo_corporativo",
+        "centro_costo__codigo",
+        "centro_costo__nombre",
     )
-    list_filter = ("estado", "empresa", "area", "cargo", "ubicacion")
-    list_select_related = ("empresa", "area", "cargo", "ubicacion")
+    list_filter = ("estado", "empresa", "area", "cargo", "ubicacion", "centro_costo")
+    list_select_related = ("empresa", "area", "cargo", "ubicacion", "centro_costo")
+    autocomplete_fields = ("empresa", "area", "cargo", "ubicacion", "centro_costo")
