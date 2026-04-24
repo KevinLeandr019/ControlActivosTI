@@ -5,7 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ admin2_page_title|default:"Admin2" }} - ControlActivosTI</title>
-    <link rel="stylesheet" href="{% static 'admin2/css/admin2.css' %}">
+    <link rel="icon" type="image/svg+xml" href="{% static 'icons/favicon-admin.svg' %}">
+    <link rel="alternate icon" href="{% static 'icons/favicon-admin.svg' %}">
+    <link rel="stylesheet" href="{% static 'admin2/css/admin2.css' %}?v=20260424-3">
 </head>
 <body class="admin2-body">
     <header class="admin2-topbar">
@@ -27,24 +29,23 @@
             <div class="admin2-sidebar__section">
                 <p class="admin2-sidebar__label">Navegacion</p>
                 <nav class="admin2-nav">
-                    <a href="{% url 'admin2-inicio' %}" class="admin2-nav__link {% if request.path == '/admin2/' %}is-active{% endif %}">Inicio</a>
-                    {% for item in admin2_modules %}
-                        <a href="{{ item.url }}" class="admin2-nav__link {% if request.path == item.url %}is-active{% endif %}">
-                            <span class="admin2-nav__pill">{{ item.icon_label }}</span>
-                            <span>{{ item.title }}</span>
-                        </a>
-                    {% endfor %}
+                    {% if admin2_scroll_sections %}
+                        {% for item in admin2_scroll_sections %}
+                            <a href="{{ item.url }}" class="admin2-nav__link admin2-nav__link--anchor {% if forloop.first %}is-active{% endif %}">
+                                <span class="admin2-nav__pill">{{ item.icon_label }}</span>
+                                <span>{{ item.label }}</span>
+                            </a>
+                        {% endfor %}
+                    {% else %}
+                        <a href="{% url 'admin2-inicio' %}" class="admin2-nav__link {% if request.path == '/admin2/' %}is-active{% endif %}">Inicio</a>
+                        {% for item in admin2_modules %}
+                            <a href="{{ item.url }}" class="admin2-nav__link {% if request.path == item.url %}is-active{% endif %}">
+                                <span class="admin2-nav__pill">{{ item.icon_label }}</span>
+                                <span>{{ item.title }}</span>
+                            </a>
+                        {% endfor %}
+                    {% endif %}
                 </nav>
-            </div>
-
-            <div class="admin2-sidebar__section">
-                <p class="admin2-sidebar__label">Accesos rapidos</p>
-                <div class="admin2-sidebar__shortcuts">
-                    <a href="{% url 'activos:lista' %}" class="admin2-chip">Activos</a>
-                    <a href="{% url 'colaboradores:lista' %}" class="admin2-chip">Colaboradores</a>
-                    <a href="{% url 'asignaciones:lista' %}" class="admin2-chip">Asignaciones</a>
-                    <a href="{% url 'asignaciones:nueva' %}" class="admin2-chip">Nueva asignacion</a>
-                </div>
             </div>
         </aside>
 
@@ -53,6 +54,20 @@
                 <p class="admin2-pagehead__eyebrow">{{ admin2_page_subtitle }}</p>
                 <h1>{{ admin2_page_title }}</h1>
             </section>
+
+            {% if admin2_sidebar_shortcuts %}
+                <section class="admin2-quickbar">
+                    <div>
+                        <p class="admin2-sidebar__label">Accesos rapidos</p>
+                        <h2 class="admin2-quickbar__title">Entradas directas al trabajo tecnico</h2>
+                    </div>
+                    <div class="admin2-sidebar__shortcuts">
+                        {% for item in admin2_sidebar_shortcuts %}
+                            <a href="{{ item.url }}" class="admin2-chip">{{ item.label }}</a>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endif %}
 
             {% if messages %}
                 <section class="admin2-messages">

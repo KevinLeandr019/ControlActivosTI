@@ -1,7 +1,12 @@
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
-from django.urls import reverse_lazy
+from django.shortcuts import redirect
+from django.urls import reverse, reverse_lazy
+from django.views.generic import FormView
 
-from .forms import CustomAuthenticationForm
+from .forms import CustomAuthenticationForm, PerfilUsuarioForm
+from .models import PerfilUsuario
 
 
 class CustomLoginView(LoginView):
@@ -11,3 +16,36 @@ class CustomLoginView(LoginView):
 
     def get_success_url(self):
         return reverse_lazy("dashboard-inicio")
+
+
+class PerfilUsuarioView(LoginRequiredMixin, FormView):
+    template_name = "accounts/perfil.html"
+    form_class = PerfilUsuarioForm
+
+    def get_profile(self):
+        profile, _ = PerfilUsuario.objects.get_or_create(user=self.request.user)
+        return profile
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        kwargs["profile"] = self.get_profile()
+        return kwargs
+
+    def get_success_url(self):
+        return reverse("accounts:perfil")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        profile = self.get_profile()
+        user = self.request.user
+        full_name = user.get_full_name().strip()
+        context["profile"] = profile
+        context["full_name"] = full_name or user.get_username()
+        context["profile_title"] = "Mi perfil"
+        return context
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(self.request, "Tu perfil fue actualizado correctamente.")
+        return redirect(self.get_success_url())

@@ -6,7 +6,8 @@ from django.urls import reverse
 
 from apps.activos.models import Activo
 from apps.asignaciones.models import Asignacion, AsignacionDetalle
-from apps.catalogos.models import Area, Cargo, EstadoActivo, TipoActivo, Ubicacion
+from apps.accounts.models import PerfilUsuario
+from apps.catalogos.models import Area, Cargo, CentroCosto, EstadoActivo, TipoActivo, Ubicacion
 from apps.colaboradores.models import Colaborador
 
 
@@ -20,6 +21,12 @@ class Admin2ViewsTests(TestCase):
         self.area = Area.objects.create(nombre="TI")
         self.cargo = Cargo.objects.create(nombre="Analista")
         self.ubicacion = Ubicacion.objects.create(nombre="Matriz")
+        self.ceco = CentroCosto.objects.create(
+            codigo="TI001",
+            nombre="Tecnologia",
+            acepta_asignaciones=True,
+            activo=True,
+        )
         self.tipo_activo = TipoActivo.objects.create(nombre="Laptop")
         self.estado_disponible = EstadoActivo.objects.create(
             nombre="Disponible",
@@ -37,6 +44,7 @@ class Admin2ViewsTests(TestCase):
             cargo=self.cargo,
             area=self.area,
             ubicacion=self.ubicacion,
+            centro_costo=self.ceco,
             fecha_ingreso=date(2024, 1, 10),
         )
         self.activo = Activo.objects.create(
@@ -69,9 +77,10 @@ class Admin2ViewsTests(TestCase):
         response = self.client.get(reverse("admin2-inicio"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Backoffice activo")
-        self.assertContains(response, self.activo.codigo)
-        self.assertContains(response, self.asignacion.codigo_asignacion)
+        self.assertContains(response, "Lanzador administrativo")
+        self.assertContains(response, "Usuarios")
+        self.assertContains(response, "Activos")
+        self.assertContains(response, "Asignaciones")
         self.assertContains(response, "Activos registrados")
 
     def test_admin2_inventory_module_shows_asset_rows(self):
@@ -98,3 +107,54 @@ class Admin2ViewsTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertTrue(Area.objects.filter(nombre="Finanzas", activo=True).exists())
+
+
+class PerfilUsuarioViewTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="maria",
+            password="secret123",
+            first_name="Maria",
+            last_name="Lopez",
+            email="maria@example.com",
+        )
+
+    def test_profile_requires_login(self):
+        response = self.client.get(reverse("accounts:perfil"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("accounts:login"), response.url)
+
+    def test_profile_view_creates_profile_if_missing(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("accounts:perfil"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(PerfilUsuario.objects.filter(user=self.user).exists())
+        self.assertContains(response, "Actualiza tu informacion basica")
+
+    def test_profile_view_updates_basic_data(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("accounts:perfil"),
+            {
+                "first_name": "Maria Jose",
+                "last_name": "Lopez Vera",
+                "email": "mjose@example.com",
+                "telefono": "0999999999",
+                "cargo_visible": "Analista TI",
+                "bio": "Encargada de soporte interno.",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.user.refresh_from_db()
+        profile = PerfilUsuario.objects.get(user=self.user)
+        self.assertEqual(self.user.first_name, "Maria Jose")
+        self.assertEqual(self.user.last_name, "Lopez Vera")
+        self.assertEqual(self.user.email, "mjose@example.com")
+        self.assertEqual(profile.telefono, "0999999999")
+        self.assertEqual(profile.cargo_visible, "Analista TI")
+        self.assertEqual(profile.bio, "Encargada de soporte interno.")

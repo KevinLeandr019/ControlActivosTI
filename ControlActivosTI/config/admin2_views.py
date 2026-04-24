@@ -1,7 +1,9 @@
 from django import forms
+from django.contrib import admin
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.models import Group
 from django.db.models import Count, Sum
 from django.db.models.functions import TruncMonth
 from django.forms import modelform_factory
@@ -11,10 +13,11 @@ from django.urls import reverse
 from django.views.generic import FormView, TemplateView
 
 from apps.activos.models import Activo, EventoActivo
-from apps.asignaciones.models import Asignacion
+from apps.asignaciones.models import Asignacion, AsignacionDetalle
 from apps.catalogos.models import (
     Area,
     Cargo,
+    CentroCosto,
     Empresa,
     EstadoActivo,
     TipoActivo,
@@ -25,6 +28,11 @@ from apps.colaboradores.models import Colaborador
 
 
 User = get_user_model()
+
+
+def get_admin_changelist_url(model):
+    opts = model._meta
+    return reverse(f"admin:{opts.app_label}_{opts.model_name}_changelist")
 
 
 CATALOG_CONFIG = {
@@ -219,89 +227,246 @@ class Admin2BaseContextMixin:
         context["admin2_modules"] = self.get_module_cards()
         context["admin2_page_title"] = self.page_title
         context["admin2_page_subtitle"] = self.page_subtitle
+        context["admin2_sidebar_shortcuts"] = [
+            {"label": "Inicio admin", "url": reverse("admin:index")},
+            {"label": "Usuarios", "url": reverse("admin:auth_user_changelist")},
+            {"label": "Activos", "url": get_admin_changelist_url(Activo)},
+            {"label": "Asignaciones", "url": get_admin_changelist_url(Asignacion)},
+            {"label": "Colaboradores", "url": get_admin_changelist_url(Colaborador)},
+            {"label": "Catalogos", "url": reverse("admin:app_list", kwargs={"app_label": "catalogos"})},
+        ]
         return context
 
 
 class Admin2HomeView(Admin2AccessMixin, Admin2BaseContextMixin, TemplateView):
     template_name = "admin2/inicio.html"
     page_title = "Consola administrativa"
-    page_subtitle = "Backoffice propio conectado a datos reales"
+    page_subtitle = "Puerta de entrada guiada hacia Django Admin"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        valor_total = Activo.objects.aggregate(total=Sum("valor")).get("total") or 0
-        activos_asignados = Activo.objects.filter(
-            estado_activo__nombre__iexact="Asignado"
-        ).count()
-        colaboradores_activos = Colaborador.objects.filter(
-            estado=Colaborador.EstadoColaborador.ACTIVO
-        ).count()
+        modelos_registrados = len(admin.site._registry)
+        usuarios_staff = User.objects.filter(is_staff=True).count()
+        activos_registrados = Activo.objects.count()
         asignaciones_activas = Asignacion.objects.filter(
             estado_asignacion=Asignacion.EstadoAsignacion.ACTIVA
         ).count()
 
         context["resumen"] = [
-            {"label": "Activos registrados", "value": Activo.objects.count(), "tone": "cyan"},
-            {"label": "Colaboradores activos", "value": colaboradores_activos, "tone": "blue"},
+            {"label": "Entradas de admin", "value": modelos_registrados, "tone": "cyan"},
+            {"label": "Usuarios staff", "value": usuarios_staff, "tone": "blue"},
             {"label": "Asignaciones activas", "value": asignaciones_activas, "tone": "emerald"},
-            {"label": "Valor inventario", "value": f"${valor_total}", "tone": "amber"},
+            {"label": "Activos registrados", "value": activos_registrados, "tone": "amber"},
         ]
+        context["admin2_sidebar_shortcuts"] = []
         context["accesos_rapidos"] = [
-            {"label": "Gestionar activos", "url": reverse("activos:lista")},
-            {"label": "Gestionar catalogos", "url": reverse("admin2-catalogos")},
-            {"label": "Registrar asignacion", "url": reverse("asignaciones:nueva")},
-            {"label": "Abrir Django Admin", "url": "/admin/"},
+            {"label": "Inicio Django Admin", "url": reverse("admin:index")},
+            {"label": "Usuarios", "url": reverse("admin:auth_user_changelist")},
+            {"label": "Activos", "url": get_admin_changelist_url(Activo)},
+            {"label": "Asignaciones", "url": get_admin_changelist_url(Asignacion)},
         ]
-        context["ultimas_asignaciones"] = (
-            Asignacion.objects.select_related("colaborador", "usuario_responsable")
-            .prefetch_related("detalles__activo")
-            .order_by("-fecha_asignacion", "-id")[:6]
-        )
-        context["activos_recientes"] = (
-            Activo.objects.select_related("tipo_activo", "estado_activo")
-            .order_by("-created_at", "-id")[:6]
-        )
-        activos_sin_foto = Activo.objects.filter(fotos__isnull=True).count()
-        context["alertas_operativas"] = [
+
+        context["admin_groups"] = [
             {
-                "title": "Activos listos para entrega",
-                "value": Activo.objects.filter(estado_activo__permite_asignacion=True).count(),
-                "detail": "Inventario que ya puede asignarse desde operacion.",
-            },
-            {
-                "title": "Activos actualmente asignados",
-                "value": activos_asignados,
-                "detail": "Equipos en uso por colaboradores o pendientes de retorno.",
-            },
-            {
-                "title": "Activos sin fotografia",
-                "value": activos_sin_foto,
-                "detail": "Buena oportunidad para completar evidencia visual del inventario.",
-            },
-        ]
-        context["zonas_administracion"] = [
-            {
-                "title": "Gestiona Desde /admin2",
-                "subtitle": "Backoffice orientado a operacion y negocio",
+                "section_id": "accesos-seguridad",
+                "title": "Accesos y seguridad",
+                "subtitle": "Administrar ingreso, privilegios o estructura de permisos.",
                 "tone": "emerald",
                 "items": [
-                    "Revisar el panorama general del sistema.",
-                    "Administrar catalogos maestros desde una interfaz propia.",
-                    "Entrar rapidamente a activos, colaboradores y asignaciones.",
-                    "Consultar inventario, reportes y actividad reciente.",
+                    {
+                        "eyebrow": "Auth",
+                        "title": "Usuarios",
+                        "description": "Crea cuentas, activa o desactiva accesos y corrige datos de ingreso.",
+                        "url": reverse("admin:auth_user_changelist"),
+                        "meta_label": "Registros",
+                        "meta_value": User.objects.count(),
+                    },
+                    {
+                        "eyebrow": "Auth",
+                        "title": "Grupos",
+                        "description": "Administra perfiles de permisos para no asignar privilegios uno por uno.",
+                        "url": reverse("admin:auth_group_changelist"),
+                        "meta_label": "Grupos",
+                        "meta_value": Group.objects.count(),
+                    },
                 ],
             },
             {
-                "title": "Gestiona Desde /admin",
-                "subtitle": "Zona tecnica y de soporte avanzado",
+                "section_id": "inventario-ti",
+                "title": "Inventario TI",
+                "subtitle": "Revisar equipos, estados y trazabilidad técnica del inventario.",
                 "tone": "slate",
                 "items": [
-                    "Usuarios, grupos y permisos avanzados.",
-                    "Correcciones manuales delicadas o soporte puntual.",
-                    "Modelos no migrados todavia a /admin2.",
-                    "Mantenimiento tecnico que requiere la consola nativa de Django.",
+                    {
+                        "eyebrow": "Activos",
+                        "title": "Activos",
+                        "description": "Consulta, edita o depura la ficha completa de cada equipo registrado.",
+                        "url": get_admin_changelist_url(Activo),
+                        "meta_label": "Total",
+                        "meta_value": Activo.objects.count(),
+                    },
+                    {
+                        "eyebrow": "Seguimiento",
+                        "title": "Eventos de activos",
+                        "description": "Revisa historial, novedades y movimientos asociados a los activos.",
+                        "url": get_admin_changelist_url(EventoActivo),
+                        "meta_label": "Eventos",
+                        "meta_value": EventoActivo.objects.count(),
+                    },
                 ],
+            },
+            {
+                "section_id": "colaboradores-entregas",
+                "title": "Colaboradores y entregas",
+                "subtitle": "Relacionar personas con equipos y mantener el control de entregas.",
+                "tone": "emerald",
+                "items": [
+                    {
+                        "eyebrow": "Personas",
+                        "title": "Colaboradores",
+                        "description": "Actualiza información del personal y su contexto organizacional.",
+                        "url": get_admin_changelist_url(Colaborador),
+                        "meta_label": "Colaboradores",
+                        "meta_value": Colaborador.objects.count(),
+                    },
+                    {
+                        "eyebrow": "Entrega",
+                        "title": "Asignaciones",
+                        "description": "Gestiona entregas, recepciones y estado administrativo de cada asignación.",
+                        "url": get_admin_changelist_url(Asignacion),
+                        "meta_label": "Activas",
+                        "meta_value": asignaciones_activas,
+                    },
+                    {
+                        "eyebrow": "Detalle",
+                        "title": "Detalle de asignaciones",
+                        "description": "Entra directo a las líneas internas de cada entrega cuando requieras soporte fino.",
+                        "url": get_admin_changelist_url(AsignacionDetalle),
+                        "meta_label": "Lineas",
+                        "meta_value": AsignacionDetalle.objects.count(),
+                    },
+                ],
+            },
+            {
+                "section_id": "catalogos-estructura",
+                "title": "Catalogos y estructura",
+                "subtitle": "Mantener tablas maestras y configuraciones que alimentan toda la operación.",
+                "tone": "slate",
+                "items": [
+                    {
+                        "eyebrow": "Catalogos",
+                        "title": "Areas",
+                        "description": "Clasifica las áreas internas para organizar colaboradores y reportes.",
+                        "url": get_admin_changelist_url(Area),
+                        "meta_label": "Registros",
+                        "meta_value": Area.objects.count(),
+                    },
+                    {
+                        "eyebrow": "Catalogos",
+                        "title": "Cargos",
+                        "description": "Mantiene los puestos o roles disponibles dentro de la organización.",
+                        "url": get_admin_changelist_url(Cargo),
+                        "meta_label": "Registros",
+                        "meta_value": Cargo.objects.count(),
+                    },
+                    {
+                        "eyebrow": "Catalogos",
+                        "title": "Empresas",
+                        "description": "Administra la estructura empresarial usada en el sistema.",
+                        "url": get_admin_changelist_url(Empresa),
+                        "meta_label": "Registros",
+                        "meta_value": Empresa.objects.count(),
+                    },
+                    {
+                        "eyebrow": "Catalogos",
+                        "title": "Ubicaciones",
+                        "description": "Gestiona sedes, oficinas o puntos físicos asociados al inventario.",
+                        "url": get_admin_changelist_url(Ubicacion),
+                        "meta_label": "Registros",
+                        "meta_value": Ubicacion.objects.count(),
+                    },
+                    {
+                        "eyebrow": "Catalogos",
+                        "title": "Centros de costo",
+                        "description": "Controla la estructura CECO para asignaciones y trazabilidad financiera.",
+                        "url": get_admin_changelist_url(CentroCosto),
+                        "meta_label": "Registros",
+                        "meta_value": CentroCosto.objects.count(),
+                    },
+                    {
+                        "eyebrow": "Catalogos",
+                        "title": "Tipos de activo",
+                        "description": "Define las categorías generales disponibles para registrar equipos.",
+                        "url": get_admin_changelist_url(TipoActivo),
+                        "meta_label": "Registros",
+                        "meta_value": TipoActivo.objects.count(),
+                    },
+                    {
+                        "eyebrow": "Catalogos",
+                        "title": "Estados de activo",
+                        "description": "Configura el estado operativo que determina disponibilidad y flujo.",
+                        "url": get_admin_changelist_url(EstadoActivo),
+                        "meta_label": "Registros",
+                        "meta_value": EstadoActivo.objects.count(),
+                    },
+                    {
+                        "eyebrow": "Catalogos",
+                        "title": "Tipos de evento",
+                        "description": "Mantiene las clases de eventos usadas para el seguimiento histórico.",
+                        "url": get_admin_changelist_url(TipoEventoActivo),
+                        "meta_label": "Registros",
+                        "meta_value": TipoEventoActivo.objects.count(),
+                    },
+                ],
+            },
+        ]
+        context["admin2_scroll_sections"] = [
+            {"label": "Resumen", "url": "#admin2-resumen", "icon_label": "IN"},
+            {"label": "Guia", "url": "#admin2-guia", "icon_label": "GU"},
+            {"label": "Seguridad", "url": "#accesos-seguridad", "icon_label": "SG"},
+            {"label": "Inventario", "url": "#inventario-ti", "icon_label": "TI"},
+            {"label": "Entregas", "url": "#colaboradores-entregas", "icon_label": "ET"},
+            {"label": "Catalogos", "url": "#catalogos-estructura", "icon_label": "CT"},
+            {"label": "Extras", "url": "#admin2-accesos-extra", "icon_label": "EX"},
+        ]
+        context["admin_guide"] = [
+            {
+                "step": "1",
+                "title": "Elige la intención",
+                "description": "Empieza por la sección que mejor describa lo que TI necesita resolver.",
+            },
+            {
+                "step": "2",
+                "title": "Abre el modelo correcto",
+                "description": "Cada tarjeta lleva directo al listado de Django Admin de ese modelo.",
+            },
+            {
+                "step": "3",
+                "title": "Haz la gestión técnica",
+                "description": "Una vez dentro de Django Admin, ahí sí se realiza el cambio real.",
+            },
+        ]
+        context["admin_support_links"] = [
+            {
+                "label": "Inicio completo del admin",
+                "description": "Vista general con todas las apps registradas en Django Admin.",
+                "url": reverse("admin:index"),
+            },
+            {
+                "label": "App de catalogos",
+                "description": "Entrada agrupada para Areas, Cargos, Empresas, Ubicaciones y CECO.",
+                "url": reverse("admin:app_list", kwargs={"app_label": "catalogos"}),
+            },
+            {
+                "label": "App de activos",
+                "description": "Entrada agrupada para Activos y Eventos de activos.",
+                "url": reverse("admin:app_list", kwargs={"app_label": "activos"}),
+            },
+            {
+                "label": "App de asignaciones",
+                "description": "Entrada agrupada para asignaciones y sus líneas internas.",
+                "url": reverse("admin:app_list", kwargs={"app_label": "asignaciones"}),
             },
         ]
         return context

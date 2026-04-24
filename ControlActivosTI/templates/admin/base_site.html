@@ -1,0 +1,13 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <link rel="icon" type="image/svg+xml" href="{% static 'icons/favicon-admin.svg' %}">
+    <link rel="alternate icon" href="{% static 'icons/favicon-admin.svg' %}">
+{% endblock %}
+
+{% block userlinks %}
+    <a href="{% url 'accounts:perfil' %}">Mi perfil</a> /
+    {{ block.super }}
+{% endblock %}
