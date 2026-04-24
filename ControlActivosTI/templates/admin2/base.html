@@ -20,7 +20,14 @@
         <div class="admin2-topbar__right">
             <a href="{% url 'dashboard-inicio' %}" class="admin2-toplink">Dashboard</a>
             <a href="/admin/" class="admin2-toplink">Django Admin</a>
-            <span class="admin2-user">{{ request.user.username }}</span>
+            <a href="{% url 'accounts:perfil' %}" class="admin2-user">
+                {% if current_user_profile and current_user_profile.foto %}
+                    <img src="{{ current_user_profile.foto.url }}" alt="Foto de perfil de {{ request.user.username }}" class="admin2-user__avatar">
+                {% else %}
+                    <span class="admin2-user__avatar admin2-user__avatar--fallback">{{ request.user.username|first|upper }}</span>
+                {% endif %}
+                <span>{{ request.user.get_full_name|default:request.user.username }}</span>
+            </a>
         </div>
     </header>
 

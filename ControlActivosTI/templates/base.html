@@ -102,9 +102,13 @@
                 {% if user.is_authenticated %}
                     <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
                         <a href="{% url 'accounts:perfil' %}" class="inline-flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 transition hover:border-cyan-200 hover:bg-cyan-50/70">
-                            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-100 text-sm font-bold text-cyan-700">
-                                {{ user.username|first|upper }}
-                            </span>
+                            {% if current_user_profile and current_user_profile.foto %}
+                                <img src="{{ current_user_profile.foto.url }}" alt="Foto de perfil de {{ user.username }}" class="h-9 w-9 rounded-full object-cover ring-2 ring-cyan-100">
+                            {% else %}
+                                <span class="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-100 text-sm font-bold text-cyan-700">
+                                    {{ user.username|first|upper }}
+                                </span>
+                            {% endif %}
                             <div>
                                 <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Mi perfil</p>
                                 <p class="text-sm font-semibold text-slate-700">{{ user.get_full_name|default:user.username }}</p>

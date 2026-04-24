@@ -88,6 +88,28 @@ body.admin2-body {
     font-size: 0.9rem;
 }
 
+.admin2-user {
+    gap: 10px;
+    font-weight: 600;
+}
+
+.admin2-user__avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+}
+
+.admin2-user__avatar--fallback {
+    display: inline-grid;
+    place-items: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
 .admin2-layout {
     display: grid;
     grid-template-columns: 260px minmax(0, 1fr);

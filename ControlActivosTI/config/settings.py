@@ -13,6 +13,21 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 from decouple import config
 
+
+def env_bool(name, default=False):
+    value = config(name, default=str(default))
+    if isinstance(value, bool):
+        return value
+    normalized = str(value).strip().lower()
+    truthy = {"1", "true", "yes", "on"}
+    falsy = {"0", "false", "no", "off", "", "release", "prod", "production"}
+    if normalized in truthy:
+        return True
+    if normalized in falsy:
+        return False
+    return default
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -23,7 +38,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = env_bool("DEBUG", default=False)
 
 ALLOWED_HOSTS = []
 
@@ -67,6 +82,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'apps.accounts.context_processors.current_user_profile',
             ],
         },
     },

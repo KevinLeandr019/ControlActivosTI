@@ -1,14 +1,25 @@
 from datetime import date
+from pathlib import Path
+import shutil
+import uuid
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test.utils import override_settings
 
 from apps.activos.models import Activo
 from apps.asignaciones.models import Asignacion, AsignacionDetalle
 from apps.accounts.models import PerfilUsuario
 from apps.catalogos.models import Area, Cargo, CentroCosto, EstadoActivo, TipoActivo, Ubicacion
 from apps.colaboradores.models import Colaborador
+
+
+def make_test_media_root():
+    media_root = Path.cwd() / "test-media" / uuid.uuid4().hex
+    media_root.mkdir(parents=True, exist_ok=True)
+    return media_root
 
 
 class Admin2ViewsTests(TestCase):
@@ -108,6 +119,24 @@ class Admin2ViewsTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertTrue(Area.objects.filter(nombre="Finanzas", activo=True).exists())
 
+    def test_admin2_topbar_uses_profile_photo_when_available(self):
+        media_root = make_test_media_root()
+        try:
+            with override_settings(MEDIA_ROOT=media_root):
+                profile = PerfilUsuario.objects.create(
+                    user=self.user,
+                    foto=SimpleUploadedFile("staff-avatar.jpg", b"filecontent", content_type="image/jpeg"),
+                )
+                self.client.force_login(self.user)
+
+                response = self.client.get(reverse("admin2-inicio"))
+                profile.refresh_from_db()
+
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, profile.foto.url)
+        finally:
+            shutil.rmtree(media_root, ignore_errors=True)
+
 
 class PerfilUsuarioViewTests(TestCase):
     def setUp(self):
@@ -158,3 +187,21 @@ class PerfilUsuarioViewTests(TestCase):
         self.assertEqual(profile.telefono, "0999999999")
         self.assertEqual(profile.cargo_visible, "Analista TI")
         self.assertEqual(profile.bio, "Encargada de soporte interno.")
+
+    def test_profile_photo_is_available_in_shared_layouts(self):
+        media_root = make_test_media_root()
+        try:
+            with override_settings(MEDIA_ROOT=media_root):
+                profile = PerfilUsuario.objects.create(
+                    user=self.user,
+                    foto=SimpleUploadedFile("avatar.jpg", b"filecontent", content_type="image/jpeg"),
+                )
+                self.client.force_login(self.user)
+
+                dashboard_response = self.client.get(reverse("dashboard-inicio"))
+                profile.refresh_from_db()
+
+                self.assertEqual(dashboard_response.status_code, 200)
+                self.assertContains(dashboard_response, profile.foto.url)
+        finally:
+            shutil.rmtree(media_root, ignore_errors=True)
