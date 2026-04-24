@@ -72,6 +72,17 @@
                         <h3 class="text-lg font-semibold text-slate-900">Activos por estado</h3>
                         <p class="mt-1 text-sm text-slate-500">Distribucion actual del inventario segun disponibilidad y condicion.</p>
                     </div>
+                    <button
+                        type="button"
+                        class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-700"
+                        title="Refrescar panel"
+                        aria-label="Refrescar panel Activos por estado"
+                        data-refresh-dashboard
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M15.312 2.53a.75.75 0 0 1 1.06 0l1.098 1.098a.75.75 0 1 1-1.06 1.06l-.07-.068v2.88a.75.75 0 0 1-1.5 0V5.9a6.5 6.5 0 1 0 1.61 6.035.75.75 0 1 1 1.469.302A8 8 0 1 1 13.34 3.43V2.75a.75.75 0 0 1 1.5 0v.779l.472-.47Z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
                 </div>
                 <div class="h-80">
                     <canvas id="chartActivosEstado"></canvas>
@@ -84,6 +95,17 @@
                         <h3 class="text-lg font-semibold text-slate-900">Activos asignados por CECO</h3>
                         <p class="mt-1 text-sm text-slate-500">Distribucion contable de activos actualmente entregados.</p>
                     </div>
+                    <button
+                        type="button"
+                        class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-700"
+                        title="Refrescar panel"
+                        aria-label="Refrescar panel Activos asignados por CECO"
+                        data-refresh-dashboard
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M15.312 2.53a.75.75 0 0 1 1.06 0l1.098 1.098a.75.75 0 1 1-1.06 1.06l-.07-.068v2.88a.75.75 0 0 1-1.5 0V5.9a6.5 6.5 0 1 0 1.61 6.035.75.75 0 1 1 1.469.302A8 8 0 1 1 13.34 3.43V2.75a.75.75 0 0 1 1.5 0v.779l.472-.47Z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
                 </div>
                 <div class="h-80">
                     <canvas id="chartCecos"></canvas>
@@ -93,9 +115,22 @@
 
         <div class="grid gap-6">
             <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div class="mb-5">
-                    <h3 class="text-lg font-semibold text-slate-900">Activos por tipo</h3>
-                    <p class="mt-1 text-sm text-slate-500">Composicion del inventario por categoria principal.</p>
+                <div class="mb-5 flex items-start justify-between gap-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-slate-900">Activos por tipo</h3>
+                        <p class="mt-1 text-sm text-slate-500">Composicion del inventario por categoria principal.</p>
+                    </div>
+                    <button
+                        type="button"
+                        class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-700"
+                        title="Refrescar panel"
+                        aria-label="Refrescar panel Activos por tipo"
+                        data-refresh-dashboard
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M15.312 2.53a.75.75 0 0 1 1.06 0l1.098 1.098a.75.75 0 1 1-1.06 1.06l-.07-.068v2.88a.75.75 0 0 1-1.5 0V5.9a6.5 6.5 0 1 0 1.61 6.035.75.75 0 1 1 1.469.302A8 8 0 1 1 13.34 3.43V2.75a.75.75 0 0 1 1.5 0v.779l.472-.47Z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
                 </div>
                 <div class="h-80">
                     <canvas id="chartActivosTipo"></canvas>
@@ -103,9 +138,22 @@
             </div>
 
             <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div class="mb-5">
-                    <h3 class="text-lg font-semibold text-slate-900">Colaboradores por area</h3>
-                    <p class="mt-1 text-sm text-slate-500">Carga de personal por area organizacional.</p>
+                <div class="mb-5 flex items-start justify-between gap-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-slate-900">Colaboradores por area</h3>
+                        <p class="mt-1 text-sm text-slate-500">Carga de personal por area organizacional.</p>
+                    </div>
+                    <button
+                        type="button"
+                        class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-700"
+                        title="Refrescar panel"
+                        aria-label="Refrescar panel Colaboradores por area"
+                        data-refresh-dashboard
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M15.312 2.53a.75.75 0 0 1 1.06 0l1.098 1.098a.75.75 0 1 1-1.06 1.06l-.07-.068v2.88a.75.75 0 0 1-1.5 0V5.9a6.5 6.5 0 1 0 1.61 6.035.75.75 0 1 1 1.469.302A8 8 0 1 1 13.34 3.43V2.75a.75.75 0 0 1 1.5 0v.779l.472-.47Z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
                 </div>
                 <div class="h-80">
                     <canvas id="chartColaboradoresArea"></canvas>
@@ -212,6 +260,10 @@
 
 <script>
     (() => {
+        document.querySelectorAll("[data-refresh-dashboard]").forEach((button) => {
+            button.addEventListener("click", () => window.location.reload());
+        });
+
         const readJSON = (id) => {
             const node = document.getElementById(id);
             return node ? JSON.parse(node.textContent) : [];
