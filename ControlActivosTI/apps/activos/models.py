@@ -7,6 +7,16 @@ from django.utils import timezone
 from apps.catalogos.models import EstadoActivo, TipoActivo, TipoEventoActivo
 
 
+TIPOS_ACTIVO_CON_ESPECIFICACIONES = (
+    "laptop",
+    "pc",
+    "desktop",
+    "escritorio",
+    "computador",
+    "computadora",
+)
+
+
 def ruta_foto_activo(instance, filename):
     codigo = instance.activo.codigo if instance.activo and instance.activo.codigo else "sin-codigo"
     return f"activos/{codigo}/{filename}"
@@ -35,7 +45,7 @@ class Activo(models.Model):
     cpu = models.CharField(max_length=150, blank=True)
     ram = models.CharField(max_length=50, blank=True)
     disco = models.CharField(max_length=80, blank=True)
-    sistema_operativo = models.CharField(max_length=50, default="Windows")
+    sistema_operativo = models.CharField(max_length=50, blank=True, default="")
     fecha_compra = models.DateField(null=True, blank=True)
     valor = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     estado_activo = models.ForeignKey(
@@ -70,6 +80,19 @@ class Activo(models.Model):
 
         return mapa_prefijos.get(nombre_tipo, "ACT")
 
+    def requiere_especificaciones_tecnicas(self):
+        nombre_tipo = (self.tipo_activo.nombre if self.tipo_activo_id else "").strip().lower()
+        return any(clave in nombre_tipo for clave in TIPOS_ACTIVO_CON_ESPECIFICACIONES)
+
+    def limpiar_especificaciones_no_aplicables(self):
+        if self.requiere_especificaciones_tecnicas():
+            return
+
+        self.cpu = ""
+        self.ram = ""
+        self.disco = ""
+        self.sistema_operativo = ""
+
     def _generar_codigo(self):
         prefijo = self._obtener_prefijo_tipo()
         ultimo = (
@@ -92,6 +115,7 @@ class Activo(models.Model):
     def save(self, *args, **kwargs):
         if not self.serie or not self.serie.strip():
             self.serie = "S/N"
+        self.limpiar_especificaciones_no_aplicables()
         if not self.codigo:
             self.codigo = self._generar_codigo()
         super().save(*args, **kwargs)

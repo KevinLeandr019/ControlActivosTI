@@ -1,11 +1,58 @@
+from django import forms
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import Activo, FotoActivo, EventoActivo
+from .models import Activo, EventoActivo, FotoActivo, TIPOS_ACTIVO_CON_ESPECIFICACIONES
+
+
+class ActivoAdminForm(forms.ModelForm):
+    campos_tecnicos = ("cpu", "ram", "disco", "sistema_operativo")
+
+    class Meta:
+        model = Activo
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for nombre_campo in self.campos_tecnicos:
+            self.fields[nombre_campo].required = False
+
+        self.fields["cpu"].help_text = "Solo aplica para laptops, PC o equipos de escritorio."
+        self.fields["ram"].help_text = "Solo aplica para laptops, PC o equipos de escritorio."
+        self.fields["disco"].help_text = "Solo aplica para laptops, PC o equipos de escritorio."
+        self.fields["sistema_operativo"].help_text = "Solo aplica para laptops, PC o equipos de escritorio."
+
+    def clean(self):
+        cleaned_data = super().clean()
+        tipo_activo = cleaned_data.get("tipo_activo")
+        nombre_tipo = (tipo_activo.nombre if tipo_activo else "").strip().lower()
+        requiere_especificaciones = any(
+            clave in nombre_tipo
+            for clave in TIPOS_ACTIVO_CON_ESPECIFICACIONES
+        )
+
+        if not requiere_especificaciones:
+            for nombre_campo in self.campos_tecnicos:
+                cleaned_data[nombre_campo] = ""
+
+        return cleaned_data
+
+
+class FotoActivoInlineForm(forms.ModelForm):
+    class Meta:
+        model = FotoActivo
+        fields = "__all__"
+
+    def clean_imagen(self):
+        imagen = self.cleaned_data.get("imagen")
+        if self.instance.pk and not imagen:
+            return self.instance.imagen
+        return imagen
 
 
 class FotoActivoInline(admin.TabularInline):
     model = FotoActivo
+    form = FotoActivoInlineForm
     extra = 1
     max_num = 5
     fields = ("imagen", "vista_previa", "descripcion", "orden")
@@ -24,6 +71,7 @@ class FotoActivoInline(admin.TabularInline):
 
 @admin.register(Activo)
 class ActivoAdmin(admin.ModelAdmin):
+    form = ActivoAdminForm
     list_display = (
         "codigo",
         "tipo_activo",
@@ -55,6 +103,9 @@ class ActivoAdmin(admin.ModelAdmin):
     )
     list_select_related = ("tipo_activo", "estado_activo")
     inlines = [FotoActivoInline]
+
+    class Media:
+        js = ("admin/activos/activo_admin.js",)
 
     def miniatura_principal(self, obj):
         primera_foto = obj.fotos.order_by("orden", "id").first()
