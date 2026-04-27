@@ -68,7 +68,7 @@ class InicioView(LoginRequiredMixin, TemplateView):
 
         alertas = [
             {
-                "titulo": "Activos listos para asignacion",
+                "titulo": "Activos listos para asignación",
                 "valor": activos_disponibles,
                 "tono": "emerald",
                 "detalle": "Equipos que pueden entregarse de inmediato.",
@@ -89,7 +89,7 @@ class InicioView(LoginRequiredMixin, TemplateView):
                 "titulo": "Asignaciones activas",
                 "valor": asignaciones_activas,
                 "tono": "rose",
-                "detalle": "Procesos abiertos pendientes de devolucion o seguimiento.",
+                "detalle": "Procesos abiertos pendientes de devolución o seguimiento.",
             },
         ]
 

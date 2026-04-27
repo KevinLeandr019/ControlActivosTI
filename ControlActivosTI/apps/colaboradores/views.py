@@ -6,6 +6,7 @@ from django.views.generic import DetailView, ListView
 
 from apps.activos.models import FotoActivo
 from apps.asignaciones.models import Asignacion, AsignacionDetalle
+
 from .models import Colaborador
 
 
@@ -99,17 +100,13 @@ class ColaboradorDetailView(LoginRequiredMixin, DetailView):
                 "usuario_responsable",
                 "usuario_recepcion",
             )
-            .prefetch_related(
-                Prefetch("detalles", queryset=detalles_qs)
-            )
+            .prefetch_related(Prefetch("detalles", queryset=detalles_qs))
             .order_by("-fecha_asignacion", "-id")
         )
 
         return (
             Colaborador.objects.select_related("empresa", "area", "cargo", "ubicacion")
-            .prefetch_related(
-                Prefetch("asignaciones", queryset=asignaciones_qs)
-            )
+            .prefetch_related(Prefetch("asignaciones", queryset=asignaciones_qs))
         )
 
     def get_context_data(self, **kwargs):

@@ -38,8 +38,8 @@ def get_admin_changelist_url(model):
 CATALOG_CONFIG = {
     "areas": {
         "model": Area,
-        "title": "Areas",
-        "singular": "Area",
+        "title": "Áreas",
+        "singular": "Área",
         "description": "Organizan colaboradores, reportes y segmentacion interna.",
         "fields": ["nombre", "descripcion", "activo"],
         "columns": ["nombre", "activo", "updated_at"],
@@ -127,7 +127,7 @@ ADMIN2_MODULES = [
     {
         "slug": "reportes",
         "title": "Reportes",
-        "description": "Resume tendencias de inventario, asignaciones y distribucion por area.",
+        "description": "Resume tendencias de inventario, asignaciones y distribución por área.",
         "icon_label": "RP",
         "eyebrow": "Analitica",
     },
@@ -233,7 +233,7 @@ class Admin2BaseContextMixin:
             {"label": "Activos", "url": get_admin_changelist_url(Activo)},
             {"label": "Asignaciones", "url": get_admin_changelist_url(Asignacion)},
             {"label": "Colaboradores", "url": get_admin_changelist_url(Colaborador)},
-            {"label": "Catalogos", "url": reverse("admin:app_list", kwargs={"app_label": "catalogos"})},
+            {"label": "Catálogos", "url": reverse("admin:app_list", kwargs={"app_label": "catalogos"})},
         ]
         return context
 
@@ -427,7 +427,7 @@ class Admin2HomeView(Admin2AccessMixin, Admin2BaseContextMixin, TemplateView):
             {"label": "Seguridad", "url": "#accesos-seguridad", "icon_label": "SG"},
             {"label": "Inventario", "url": "#inventario-ti", "icon_label": "TI"},
             {"label": "Entregas", "url": "#colaboradores-entregas", "icon_label": "ET"},
-            {"label": "Catalogos", "url": "#catalogos-estructura", "icon_label": "CT"},
+            {"label": "Catálogos", "url": "#catalogos-estructura", "icon_label": "CT"},
             {"label": "Extras", "url": "#admin2-accesos-extra", "icon_label": "EX"},
         ]
         context["admin_guide"] = [
@@ -454,7 +454,7 @@ class Admin2HomeView(Admin2AccessMixin, Admin2BaseContextMixin, TemplateView):
                 "url": reverse("admin:index"),
             },
             {
-                "label": "App de catalogos",
+                "label": "App de catálogos",
                 "description": "Entrada agrupada para Areas, Cargos, Empresas, Ubicaciones y CECO.",
                 "url": reverse("admin:app_list", kwargs={"app_label": "catalogos"}),
             },
@@ -485,7 +485,7 @@ class Admin2ModuleView(Admin2AccessMixin, Admin2BaseContextMixin, TemplateView):
         "catalogos": {
             "title": "Catalogos",
             "subtitle": "Tablas maestras del sistema",
-            "description": "Panel para administrar catalogos desde /admin2 y dejar en Django Admin solo lo mas tecnico.",
+            "description": "Panel para administrar catálogos desde /admin2 y dejar en Django Admin solo lo más técnico.",
         },
         "seguridad": {
             "title": "Seguridad",
@@ -595,13 +595,13 @@ class Admin2ModuleView(Admin2AccessMixin, Admin2BaseContextMixin, TemplateView):
                 {"label": "Tipos", "value": TipoActivo.objects.count()},
             ],
             "module_actions": [
-                {"label": "Abrir catalogos", "url": reverse("admin2-catalogo-lista", args=["areas"]), "kind": "primary"},
+                {"label": "Abrir catálogos", "url": reverse("admin2-catalogo-lista", args=["areas"]), "kind": "primary"},
                 {"label": "Catalogos en Django Admin", "url": reverse("admin:catalogos_area_changelist"), "kind": "secondary"},
             ],
             "table_title": "Catalogos disponibles",
             "table_columns": ["Catalogo", "Total", "Activos", "Accion"],
             "table_rows": rows,
-            "table_empty_message": "No hay catalogos configurados.",
+            "table_empty_message": "No hay catálogos configurados.",
             "info_panels": [
                 {
                     "title": "Catalogos administrables desde /admin2",
@@ -701,7 +701,7 @@ class Admin2ModuleView(Admin2AccessMixin, Admin2BaseContextMixin, TemplateView):
 
         return {
             "stats": [
-                {"label": "Valor inventario", "value": f"${valor_total}"},
+                {"label": "Valor del inventario", "value": f"${valor_total}"},
                 {"label": "Activos disponibles", "value": Activo.objects.filter(estado_activo__permite_asignacion=True).count()},
                 {"label": "Activos asignados", "value": Activo.objects.filter(estado_activo__nombre__iexact="Asignado").count()},
                 {"label": "Asignaciones totales", "value": Asignacion.objects.count()},
@@ -717,8 +717,8 @@ class Admin2ModuleView(Admin2AccessMixin, Admin2BaseContextMixin, TemplateView):
             "info_panels": [
                 {"title": "Asignaciones por mes", "items": month_panel_items or [{"label": "Sin movimientos", "value": "-"}]},
                 {
-                    "title": "Colaboradores por area",
-                    "items": [{"label": item["area__nombre"] or "Sin area", "value": item["total"]} for item in areas] or [{"label": "Sin datos", "value": "-"}],
+                    "title": "Colaboradores por área",
+                    "items": [{"label": item["area__nombre"] or "Sin área", "value": item["total"]} for item in areas] or [{"label": "Sin datos", "value": "-"}],
                 },
             ],
         }
@@ -765,10 +765,10 @@ class Admin2ModuleView(Admin2AccessMixin, Admin2BaseContextMixin, TemplateView):
             ],
             "module_actions": [
                 {"label": "Ver inventario completo", "url": reverse("activos:lista"), "kind": "primary"},
-                {"label": "Crear asignacion", "url": reverse("asignaciones:nueva"), "kind": "secondary"},
+                {"label": "Crear asignación", "url": reverse("asignaciones:nueva"), "kind": "secondary"},
             ],
             "table_title": "Ultimos activos incorporados",
-            "table_columns": ["Codigo", "Equipo", "Estado", "Alta"],
+            "table_columns": ["Código", "Equipo", "Estado", "Alta"],
             "table_rows": rows,
             "table_empty_message": "No hay activos para mostrar.",
             "info_panels": [

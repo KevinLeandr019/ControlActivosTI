@@ -3,7 +3,7 @@ from django.contrib.auth.forms import AuthenticationForm
 
 class CustomAuthenticationForm(AuthenticationForm):
     error_messages = {
-        "invalid_login": "Usuario o contrasena incorrectos. Verifica tus credenciales.",
+        "invalid_login": "Usuario o contraseña incorrectos. Verifica tus credenciales.",
         "inactive": "Tu cuenta se encuentra inactiva.",
     }
 
@@ -26,7 +26,7 @@ class CustomAuthenticationForm(AuthenticationForm):
     )
 
     password = forms.CharField(
-        label="Contrasena",
+        label="Contraseña",
         widget=forms.PasswordInput(
             attrs={
                 "class": (
@@ -35,7 +35,7 @@ class CustomAuthenticationForm(AuthenticationForm):
                     "outline-none transition duration-200 "
                     "focus:border-cyan-400/70 focus:bg-white/10 focus:ring-4 focus:ring-cyan-400/15"
                 ),
-                "placeholder": "Ingresa tu contrasena",
+                "placeholder": "Ingresa tu contraseña",
                 "autocomplete": "current-password",
             }
         ),
@@ -45,11 +45,11 @@ class CustomAuthenticationForm(AuthenticationForm):
 class PerfilUsuarioForm(forms.Form):
     first_name = forms.CharField(label="Nombres", max_length=150, required=False)
     last_name = forms.CharField(label="Apellidos", max_length=150, required=False)
-    email = forms.EmailField(label="Correo electronico", required=False)
-    telefono = forms.CharField(label="Telefono", max_length=30, required=False)
+    email = forms.EmailField(label="Correo electrónico", required=False)
+    telefono = forms.CharField(label="Teléfono", max_length=30, required=False)
     cargo_visible = forms.CharField(label="Cargo visible", max_length=120, required=False)
     bio = forms.CharField(
-        label="Biografia breve",
+        label="Biografía breve",
         required=False,
         widget=forms.Textarea(attrs={"rows": 4}),
     )
@@ -79,7 +79,7 @@ class PerfilUsuarioForm(forms.Form):
                 field.widget.attrs.update(
                     {
                         "class": input_class,
-                        "placeholder": "Agrega una descripcion breve para tu perfil",
+                        "placeholder": "Agrega una descripción breve para tu perfil",
                     }
                 )
             elif isinstance(field.widget, forms.CheckboxInput):
@@ -106,7 +106,7 @@ class PerfilUsuarioForm(forms.Form):
     def clean_foto(self):
         foto = self.cleaned_data.get("foto")
         if foto and foto.content_type and not foto.content_type.startswith("image/"):
-            raise forms.ValidationError("Debes subir un archivo de imagen valido.")
+            raise forms.ValidationError("Debes subir un archivo de imagen válido.")
         return foto
 
     def save(self):

@@ -11,7 +11,7 @@
             <div class="admin2-actionrow">
                 <a href="{{ create_url }}" class="admin2-button is-primary">Nuevo registro</a>
                 <a href="{{ admin_catalog_url }}" class="admin2-button is-secondary">Abrir en Django Admin</a>
-                <a href="{% url 'admin2-catalogos' %}" class="admin2-button is-secondary">Volver a catalogos</a>
+                <a href="{% url 'admin2-catalogos' %}" class="admin2-button is-secondary">Volver a catálogos</a>
             </div>
         </div>
 
@@ -44,7 +44,7 @@
         <div class="admin2-filterwrap">
             <form method="get" class="admin2-filterform">
                 <div class="admin2-field">
-                    <label for="catalog-query">Busqueda</label>
+                    <label for="catalog-query">Búsqueda</label>
                     <input id="catalog-query" type="text" name="q" value="{{ catalog_query }}" placeholder="Buscar por nombre">
                 </div>
                 <div class="admin2-field">
@@ -67,7 +67,7 @@
                 <thead>
                     <tr>
                         <th>Nombre</th>
-                        {% if catalog_has_assignation_column %}<th>Permite asignacion</th>{% endif %}
+                        {% if catalog_has_assignation_column %}<th>Permite asignación</th>{% endif %}
                         <th>Activo</th>
                         <th>Actualizado</th>
                         <th>Accion</th>
@@ -115,8 +115,8 @@
         <section class="admin2-panel">
             <div class="admin2-sectionhead">
                 <div>
-                    <p class="admin2-sectionhead__eyebrow">Otros catalogos</p>
-                    <h2>Navegacion</h2>
+                    <p class="admin2-sectionhead__eyebrow">Otros catálogos</p>
+                    <h2>Navegación</h2>
                 </div>
             </div>
 

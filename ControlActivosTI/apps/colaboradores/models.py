@@ -6,7 +6,7 @@ from apps.catalogos.models import Area, Cargo, CentroCosto, Empresa, Ubicacion
 
 cedula_validator = RegexValidator(
     regex=r"^\d{10}$",
-    message="La cédula debe tener exactamente 10 dígitos."
+    message="La cédula debe tener exactamente 10 dígitos.",
 )
 
 
@@ -55,7 +55,7 @@ class Colaborador(models.Model):
         related_name="colaboradores",
         null=True,
         blank=True,
-        help_text="CECO contable vigente del colaborador. Se copia a cada asignacion al crearla.",
+        help_text="CECO contable vigente del colaborador. Se copia a cada asignación al crearla.",
     )
     estado = models.CharField(
         max_length=15,

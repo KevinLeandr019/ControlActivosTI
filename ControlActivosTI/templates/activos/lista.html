@@ -7,7 +7,7 @@
 <div class="mb-6 flex items-center justify-between gap-4">
     <div>
         <h2 class="text-xl font-semibold text-slate-900">Listado de activos</h2>
-        <p class="text-sm text-slate-500">Consulta rapidamente el inventario y abre el detalle tecnico de cada activo.</p>
+        <p class="text-sm text-slate-500">Consulta rápidamente el inventario y abre el detalle técnico de cada activo.</p>
     </div>
 </div>
 
@@ -15,12 +15,12 @@
     <form method="get" class="space-y-6">
         <div class="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(180px,0.7fr)_minmax(180px,0.7fr)]">
             <div>
-                <label class="mb-2 block text-sm font-semibold text-slate-700">Busqueda</label>
+                <label class="mb-2 block text-sm font-semibold text-slate-700">Búsqueda</label>
                 <input
                     type="text"
                     name="q"
                     value="{{ busqueda }}"
-                    placeholder="Buscar por codigo, marca, modelo o serie"
+                    placeholder="Buscar por código, marca, modelo o serie"
                     class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition duration-200 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
                 >
             </div>
@@ -62,7 +62,7 @@
             <div class="flex flex-wrap items-center gap-2">
                 <span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Filtros activos</span>
                 {% if busqueda %}
-                    <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">Busqueda: {{ busqueda }}</span>
+                    <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">Búsqueda: {{ busqueda }}</span>
                 {% endif %}
                 {% if estado_seleccionado %}
                     {% for estado in estados_activo %}
@@ -83,7 +83,7 @@
 
         <details class="rounded-xl border border-slate-200 bg-slate-50 p-4">
             <summary class="cursor-pointer text-sm font-semibold text-slate-700">Vista de tabla</summary>
-            <p class="mt-2 text-xs text-slate-500">Escoge que columnas quieres ver. La columna Accion siempre se muestra.</p>
+            <p class="mt-2 text-xs text-slate-500">Escoge qué columnas quieres ver. La columna Acción siempre se muestra.</p>
             <div class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
                 {% for key, label in columnas_disponibles %}
                     <label class="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition hover:border-slate-300 hover:bg-slate-100">
@@ -116,7 +116,7 @@
         <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-left text-slate-600">
                 <tr>
-                    {% if "codigo" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Codigo</th>{% endif %}
+                    {% if "codigo" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Código</th>{% endif %}
                     {% if "tipo_activo" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Tipo</th>{% endif %}
                     {% if "marca" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Marca</th>{% endif %}
                     {% if "modelo" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Modelo</th>{% endif %}
@@ -128,7 +128,7 @@
                     {% if "fecha_compra" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Fecha de compra</th>{% endif %}
                     {% if "valor" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Valor</th>{% endif %}
                     {% if "estado_activo" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Estado</th>{% endif %}
-                    <th class="px-4 py-3 font-semibold">Accion</th>
+                    <th class="px-4 py-3 font-semibold">Acción</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">

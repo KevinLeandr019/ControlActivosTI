@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Nueva asignacion - ControlActivosTI{% endblock %}
-{% block page_title %}Nueva asignacion{% endblock %}
+{% block title %}Nueva asignación - ControlActivosTI{% endblock %}
+{% block page_title %}Nueva asignación{% endblock %}
 {% block content %}
 <form method="post" class="space-y-6">
     {% csrf_token %}
@@ -24,7 +24,7 @@
                     <input
                         id="filtro-activos"
                         type="search"
-                        placeholder="Filtra por codigo, tipo, marca, modelo, serie o especificaciones"
+                        placeholder="Filtra por código, tipo, marca, modelo, serie o especificaciones"
                         class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition duration-200 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
                     >
                 </div>
@@ -50,7 +50,7 @@
                         <thead class="bg-slate-100 text-slate-600">
                             <tr>
                                 <th class="w-16 px-4 py-3 text-center font-semibold">Sel.</th>
-                                <th class="px-4 py-3 text-left font-semibold">Codigo</th>
+                                <th class="px-4 py-3 text-left font-semibold">Código</th>
                                 <th class="px-4 py-3 text-left font-semibold">Tipo</th>
                                 <th class="px-4 py-3 text-left font-semibold">Marca / Modelo</th>
                                 <th class="px-4 py-3 text-left font-semibold">Serie</th>
@@ -103,7 +103,7 @@
                             {% empty %}
                                 <tr>
                                     <td colspan="7" class="px-4 py-8 text-center text-slate-500">
-                                        No hay activos disponibles para asignacion.
+                                        No hay activos disponibles para asignación.
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -138,7 +138,7 @@
     </div>
 
     <div>
-        <label class="mb-2 block text-sm font-semibold text-slate-700">Fecha de asignacion</label>
+        <label class="mb-2 block text-sm font-semibold text-slate-700">Fecha de asignación</label>
         {{ form.fecha_asignacion }}
         {% if form.fecha_asignacion.errors %}
             <p class="mt-2 text-sm text-red-600">{{ form.fecha_asignacion.errors|join:", " }}</p>
@@ -161,7 +161,7 @@
 
     <div class="flex items-center gap-3">
         <button type="submit" class="rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-cyan-700">
-            Guardar asignacion
+            Guardar asignación
         </button>
         <a href="{% url 'asignaciones:lista' %}" class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
             Cancelar
