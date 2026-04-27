@@ -1,11 +1,12 @@
 from decimal import Decimal
 
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Prefetch, Q
+from django.db.models import Count, Prefetch, Q
 from django.views.generic import DetailView, ListView
 
 from apps.activos.models import FotoActivo
 from apps.asignaciones.models import Asignacion, AsignacionDetalle
+from apps.catalogos.models import Area, Empresa, Ubicacion
 
 from .models import Colaborador
 
@@ -26,6 +27,7 @@ class ColaboradorListView(LoginRequiredMixin, ListView):
         ("cargo", "Cargo"),
         ("ubicacion", "Ubicación"),
         ("estado", "Estado"),
+        ("activos_asignados", "Activos asignados"),
         ("fecha_ingreso", "Fecha de ingreso"),
     ]
 
@@ -51,6 +53,16 @@ class ColaboradorListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         queryset = (
             Colaborador.objects.select_related("empresa", "area", "cargo", "ubicacion")
+            .annotate(
+                activos_asignados_count=Count(
+                    "asignaciones__detalles",
+                    filter=Q(
+                        asignaciones__estado_asignacion=Asignacion.EstadoAsignacion.ACTIVA,
+                        asignaciones__detalles__activa=True,
+                    ),
+                    distinct=True,
+                )
+            )
             .order_by("apellidos", "nombres")
         )
 
@@ -63,6 +75,29 @@ class ColaboradorListView(LoginRequiredMixin, ListView):
                 | Q(correo_corporativo__icontains=busqueda)
             )
 
+        estado = self.request.GET.get("estado", "").strip()
+        estados_validos = {choice[0] for choice in Colaborador.EstadoColaborador.choices}
+        if estado in estados_validos:
+            queryset = queryset.filter(estado=estado)
+
+        empresa_id = self.request.GET.get("empresa", "").strip()
+        if empresa_id.isdigit():
+            queryset = queryset.filter(empresa_id=empresa_id)
+
+        area_id = self.request.GET.get("area", "").strip()
+        if area_id.isdigit():
+            queryset = queryset.filter(area_id=area_id)
+
+        ubicacion_id = self.request.GET.get("ubicacion", "").strip()
+        if ubicacion_id.isdigit():
+            queryset = queryset.filter(ubicacion_id=ubicacion_id)
+
+        activos = self.request.GET.get("activos", "").strip()
+        if activos == "con":
+            queryset = queryset.filter(activos_asignados_count__gt=0)
+        elif activos == "sin":
+            queryset = queryset.filter(activos_asignados_count=0)
+
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -70,6 +105,15 @@ class ColaboradorListView(LoginRequiredMixin, ListView):
         context["columnas_disponibles"] = self.COLUMNAS_DISPONIBLES
         context["columnas_seleccionadas"] = self.get_selected_columns()
         context["busqueda"] = self.request.GET.get("q", "").strip()
+        context["estado_seleccionado"] = self.request.GET.get("estado", "").strip()
+        context["empresa_seleccionada"] = self.request.GET.get("empresa", "").strip()
+        context["area_seleccionada"] = self.request.GET.get("area", "").strip()
+        context["ubicacion_seleccionada"] = self.request.GET.get("ubicacion", "").strip()
+        context["activos_seleccionado"] = self.request.GET.get("activos", "").strip()
+        context["estados_colaborador"] = Colaborador.EstadoColaborador.choices
+        context["empresas"] = Empresa.objects.filter(activo=True).order_by("nombre")
+        context["areas"] = Area.objects.filter(activo=True).order_by("nombre")
+        context["ubicaciones"] = Ubicacion.objects.filter(activo=True).order_by("nombre")
         return context
 
 

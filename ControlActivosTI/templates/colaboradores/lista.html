@@ -7,25 +7,139 @@
 <div class="mb-6 flex items-center justify-between gap-4">
     <div>
         <h2 class="text-xl font-semibold text-slate-900">Listado de colaboradores</h2>
-        <p class="text-sm text-slate-500">Consulta rápidamente la información principal de cada colaborador y abre su ficha completa.</p>
+        <p class="text-sm text-slate-500">Consulta rapidamente la informacion principal de cada colaborador y abre su ficha completa.</p>
     </div>
 </div>
 
 <div class="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
     <form method="get" class="space-y-6">
-        <div>
-            <label class="mb-2 block text-sm font-semibold text-slate-700">Búsqueda</label>
-            <input
-                type="text"
-                name="q"
-                value="{{ busqueda }}"
-                placeholder="Buscar por nombre, cédula o correo"
-                class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition duration-200 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
-            >
+        <div class="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(170px,0.65fr)_minmax(190px,0.75fr)]">
+            <div>
+                <label class="mb-2 block text-sm font-semibold text-slate-700">Busqueda</label>
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ busqueda }}"
+                    placeholder="Buscar por nombre, apellido, cedula o correo"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition duration-200 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+                >
+            </div>
+
+            <div>
+                <label for="filtro-estado" class="mb-2 block text-sm font-semibold text-slate-700">Estado</label>
+                <select
+                    id="filtro-estado"
+                    name="estado"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition duration-200 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+                >
+                    <option value="">Todos</option>
+                    {% for value, label in estados_colaborador %}
+                        <option value="{{ value }}" {% if estado_seleccionado == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="filtro-activos" class="mb-2 block text-sm font-semibold text-slate-700">Activos asignados</label>
+                <select
+                    id="filtro-activos"
+                    name="activos"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition duration-200 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+                >
+                    <option value="">Todos</option>
+                    <option value="con" {% if activos_seleccionado == "con" %}selected{% endif %}>Con activos</option>
+                    <option value="sin" {% if activos_seleccionado == "sin" %}selected{% endif %}>Sin activos</option>
+                </select>
+            </div>
         </div>
 
-        <div>
-            <p class="mb-3 block text-sm font-semibold text-slate-700">Columnas a mostrar</p>
+        <div class="grid gap-4 md:grid-cols-3">
+            <div>
+                <label for="filtro-empresa" class="mb-2 block text-sm font-semibold text-slate-700">Empresa</label>
+                <select
+                    id="filtro-empresa"
+                    name="empresa"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition duration-200 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+                >
+                    <option value="">Todas las empresas</option>
+                    {% for empresa in empresas %}
+                        <option value="{{ empresa.pk }}" {% if empresa_seleccionada == empresa.pk|stringformat:"s" %}selected{% endif %}>{{ empresa.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="filtro-area" class="mb-2 block text-sm font-semibold text-slate-700">Area</label>
+                <select
+                    id="filtro-area"
+                    name="area"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition duration-200 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+                >
+                    <option value="">Todas las areas</option>
+                    {% for area in areas %}
+                        <option value="{{ area.pk }}" {% if area_seleccionada == area.pk|stringformat:"s" %}selected{% endif %}>{{ area.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="filtro-ubicacion" class="mb-2 block text-sm font-semibold text-slate-700">Ubicacion</label>
+                <select
+                    id="filtro-ubicacion"
+                    name="ubicacion"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition duration-200 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+                >
+                    <option value="">Todas las ubicaciones</option>
+                    {% for ubicacion in ubicaciones %}
+                        <option value="{{ ubicacion.pk }}" {% if ubicacion_seleccionada == ubicacion.pk|stringformat:"s" %}selected{% endif %}>{{ ubicacion.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        {% if busqueda or estado_seleccionado or activos_seleccionado or empresa_seleccionada or area_seleccionada or ubicacion_seleccionada %}
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Filtros activos</span>
+                {% if busqueda %}
+                    <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">Busqueda: {{ busqueda }}</span>
+                {% endif %}
+                {% if estado_seleccionado %}
+                    {% for value, label in estados_colaborador %}
+                        {% if estado_seleccionado == value %}
+                            <span class="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">Estado: {{ label }}</span>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                {% if activos_seleccionado %}
+                    <span class="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-medium text-cyan-700">Activos: {% if activos_seleccionado == "con" %}Con activos{% else %}Sin activos{% endif %}</span>
+                {% endif %}
+                {% if empresa_seleccionada %}
+                    {% for empresa in empresas %}
+                        {% if empresa_seleccionada == empresa.pk|stringformat:"s" %}
+                            <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">Empresa: {{ empresa.nombre }}</span>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                {% if area_seleccionada %}
+                    {% for area in areas %}
+                        {% if area_seleccionada == area.pk|stringformat:"s" %}
+                            <span class="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">Area: {{ area.nombre }}</span>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                {% if ubicacion_seleccionada %}
+                    {% for ubicacion in ubicaciones %}
+                        {% if ubicacion_seleccionada == ubicacion.pk|stringformat:"s" %}
+                            <span class="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700">Ubicacion: {{ ubicacion.nombre }}</span>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <details class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <summary class="cursor-pointer text-sm font-semibold text-slate-700">Vista de tabla</summary>
+            <p class="mt-2 text-xs text-slate-500">Escoge que columnas quieres ver. La columna Accion siempre se muestra.</p>
             <div class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
                 {% for key, label in columnas_disponibles %}
                     <label class="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition hover:border-slate-300 hover:bg-slate-100">
@@ -40,10 +154,9 @@
                     </label>
                 {% endfor %}
             </div>
-            <p class="mt-2 text-xs text-slate-500">La columna Acción siempre se muestra.</p>
-        </div>
+        </details>
 
-        <div class="flex gap-3">
+        <div class="flex flex-wrap gap-3">
             <button type="submit" class="rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-cyan-700">
                 Aplicar
             </button>
@@ -61,13 +174,14 @@
                 <tr>
                     {% if "apellidos" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Apellidos</th>{% endif %}
                     {% if "nombres" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Nombres</th>{% endif %}
-                    {% if "cedula" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Cédula</th>{% endif %}
+                    {% if "cedula" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Cedula</th>{% endif %}
                     {% if "correo_corporativo" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Correo</th>{% endif %}
                     {% if "empresa" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Empresa</th>{% endif %}
-                    {% if "area" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Área</th>{% endif %}
+                    {% if "area" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Area</th>{% endif %}
                     {% if "cargo" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Cargo</th>{% endif %}
-                    {% if "ubicacion" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Ubicación</th>{% endif %}
+                    {% if "ubicacion" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Ubicacion</th>{% endif %}
                     {% if "estado" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Estado</th>{% endif %}
+                    {% if "activos_asignados" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Activos asignados</th>{% endif %}
                     {% if "fecha_ingreso" in columnas_seleccionadas %}<th class="px-4 py-3 font-semibold">Fecha de ingreso</th>{% endif %}
                     <th class="px-4 py-3 font-semibold">Accion</th>
                 </tr>
@@ -87,6 +201,13 @@
                             <td class="px-4 py-3">
                                 <span class="rounded-lg px-3 py-1 text-xs font-semibold {% if colaborador.estado == 'ACTIVO' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% elif colaborador.estado == 'INACTIVO' %}bg-amber-50 text-amber-700 border border-amber-200{% else %}bg-rose-50 text-rose-700 border border-rose-200{% endif %}">
                                     {{ colaborador.get_estado_display }}
+                                </span>
+                            </td>
+                        {% endif %}
+                        {% if "activos_asignados" in columnas_seleccionadas %}
+                            <td class="px-4 py-3">
+                                <span class="inline-flex rounded-lg bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                                    {{ colaborador.activos_asignados_count }}
                                 </span>
                             </td>
                         {% endif %}
