@@ -53,6 +53,8 @@ class ColaboradorListViewTests(TestCase):
         self.assertContains(response, "Andes Corp")
         self.assertContains(response, "Beta Tech")
         self.assertContains(response, 'text-[11px] font-semibold uppercase')
+        self.assertContains(response, "data-scroll-to-results")
+        self.assertContains(response, 'id="resultados"')
         self.assertLess(
             response.content.decode().index("Andes Corp"),
             response.content.decode().index("Beta Tech"),

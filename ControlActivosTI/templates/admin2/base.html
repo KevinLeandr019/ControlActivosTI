@@ -8,6 +8,15 @@
     <link rel="icon" type="image/svg+xml" href="{% static 'icons/favicon-admin.svg' %}">
     <link rel="alternate icon" href="{% static 'icons/favicon-admin.svg' %}">
     <link rel="stylesheet" href="{% static 'admin2/css/admin2.css' %}?v=20260424-3">
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+
+        [id="resultados"] {
+            scroll-margin-top: 1.5rem;
+        }
+    </style>
 </head>
 <body class="admin2-body">
     <header class="admin2-topbar">
@@ -87,5 +96,24 @@
             {% block admin2_content %}{% endblock %}
         </main>
     </div>
+    <script>
+        document.addEventListener("submit", function (event) {
+            if (event.target.matches("[data-scroll-to-results]")) {
+                sessionStorage.setItem("scrollToResults", "true");
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const shouldScroll = sessionStorage.getItem("scrollToResults") === "true";
+            const target = document.getElementById("resultados");
+
+            if (shouldScroll && target) {
+                sessionStorage.removeItem("scrollToResults");
+                window.requestAnimationFrame(function () {
+                    target.scrollIntoView({ behavior: "smooth", block: "start" });
+                });
+            }
+        });
+    </script>
 </body>
 </html>

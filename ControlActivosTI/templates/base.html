@@ -8,6 +8,15 @@
     <link rel="icon" type="image/svg+xml" href="{% static 'icons/favicon-app.svg' %}">
     <link rel="alternate icon" href="{% static 'icons/favicon-app.svg' %}">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+
+        [id="resultados"] {
+            scroll-margin-top: 1.5rem;
+        }
+    </style>
 </head>
 <body class="min-h-screen bg-slate-100 text-slate-800">
     <div class="flex min-h-screen">
@@ -137,5 +146,24 @@
             {% endif %}
         </main>
     </div>
+    <script>
+        document.addEventListener("submit", function (event) {
+            if (event.target.matches("[data-scroll-to-results]")) {
+                sessionStorage.setItem("scrollToResults", "true");
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const shouldScroll = sessionStorage.getItem("scrollToResults") === "true";
+            const target = document.getElementById("resultados");
+
+            if (shouldScroll && target) {
+                sessionStorage.removeItem("scrollToResults");
+                window.requestAnimationFrame(function () {
+                    target.scrollIntoView({ behavior: "smooth", block: "start" });
+                });
+            }
+        });
+    </script>
 </body>
 </html>

@@ -353,6 +353,8 @@ class AsignacionListViewTests(TestCase):
         asignaciones = list(response.context["asignaciones"])
         self.assertEqual(asignaciones, [self.asignacion_activa, self.asignacion_cerrada])
         self.assertEqual(response.context["orden_seleccionado"], "recientes")
+        self.assertContains(response, "data-scroll-to-results")
+        self.assertContains(response, 'id="resultados"')
 
     def test_list_view_orders_by_oldest_dates_when_requested(self):
         self.client.force_login(self.user)

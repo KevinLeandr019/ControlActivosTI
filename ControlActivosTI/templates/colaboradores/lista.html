@@ -12,7 +12,7 @@
 </div>
 
 <div class="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-    <form method="get" class="space-y-6">
+    <form method="get" class="space-y-6" data-scroll-to-results>
         <div class="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(170px,0.65fr)_minmax(190px,0.75fr)]">
             <div>
                 <label class="mb-2 block text-sm font-semibold text-slate-700">Busqueda</label>
@@ -167,7 +167,7 @@
     </form>
 </div>
 
-<div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+<div id="resultados" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
     <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-left text-slate-600">

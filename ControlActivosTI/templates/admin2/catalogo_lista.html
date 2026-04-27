@@ -42,7 +42,7 @@
         </div>
 
         <div class="admin2-filterwrap">
-            <form method="get" class="admin2-filterform">
+            <form method="get" class="admin2-filterform" data-scroll-to-results>
                 <div class="admin2-field">
                     <label for="catalog-query">Búsqueda</label>
                     <input id="catalog-query" type="text" name="q" value="{{ catalog_query }}" placeholder="Buscar por nombre">
@@ -62,7 +62,7 @@
             </form>
         </div>
 
-        <div class="admin2-tablewrap">
+        <div id="resultados" class="admin2-tablewrap">
             <table class="admin2-table">
                 <thead>
                     <tr>
