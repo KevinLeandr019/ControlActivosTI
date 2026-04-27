@@ -53,7 +53,7 @@
             </div>
         </div>
 
-        <div class="grid gap-4 md:grid-cols-2">
+        <div class="grid gap-4 md:grid-cols-3">
             <div>
                 <label for="filtro-fecha-desde" class="mb-2 block text-sm font-semibold text-slate-700">Fecha desde</label>
                 <input
@@ -74,9 +74,20 @@
                     class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition duration-200 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
                 >
             </div>
+            <div>
+                <label for="filtro-orden" class="mb-2 block text-sm font-semibold text-slate-700">Orden por fecha</label>
+                <select
+                    id="filtro-orden"
+                    name="orden"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition duration-200 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+                >
+                    <option value="recientes" {% if orden_seleccionado == "recientes" %}selected{% endif %}>Mas recientes primero</option>
+                    <option value="antiguas" {% if orden_seleccionado == "antiguas" %}selected{% endif %}>Mas antiguas primero</option>
+                </select>
+            </div>
         </div>
 
-        {% if busqueda or estado_seleccionado or acta_seleccionada or fecha_desde or fecha_hasta %}
+        {% if busqueda or estado_seleccionado or acta_seleccionada or fecha_desde or fecha_hasta or orden_seleccionado == "antiguas" %}
             <div class="flex flex-wrap items-center gap-2">
                 <span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Filtros activos</span>
                 {% if busqueda %}
@@ -95,6 +106,9 @@
                 {% endif %}
                 {% if fecha_hasta %}
                     <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">Hasta: {{ fecha_hasta }}</span>
+                {% endif %}
+                {% if orden_seleccionado == "antiguas" %}
+                    <span class="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">Orden: Mas antiguas primero</span>
                 {% endif %}
             </div>
         {% endif %}

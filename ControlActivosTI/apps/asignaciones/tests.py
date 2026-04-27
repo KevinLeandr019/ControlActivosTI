@@ -343,3 +343,23 @@ class AsignacionListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         asignaciones = list(response.context["asignaciones"])
         self.assertEqual(asignaciones, [self.asignacion_activa])
+
+    def test_list_view_orders_by_recent_dates_by_default(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("asignaciones:lista"))
+
+        self.assertEqual(response.status_code, 200)
+        asignaciones = list(response.context["asignaciones"])
+        self.assertEqual(asignaciones, [self.asignacion_activa, self.asignacion_cerrada])
+        self.assertEqual(response.context["orden_seleccionado"], "recientes")
+
+    def test_list_view_orders_by_oldest_dates_when_requested(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("asignaciones:lista"), {"orden": "antiguas"})
+
+        self.assertEqual(response.status_code, 200)
+        asignaciones = list(response.context["asignaciones"])
+        self.assertEqual(asignaciones, [self.asignacion_cerrada, self.asignacion_activa])
+        self.assertContains(response, "Mas antiguas primero")

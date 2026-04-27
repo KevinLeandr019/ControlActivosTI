@@ -22,6 +22,10 @@ class AsignacionListView(LoginRequiredMixin, ListView):
     template_name = "asignaciones/lista.html"
     context_object_name = "asignaciones"
     paginate_by = 10
+    ORDENES_FECHA = {
+        "recientes": ("-fecha_asignacion", "-id"),
+        "antiguas": ("fecha_asignacion", "id"),
+    }
 
     def get_queryset(self):
         queryset = (
@@ -36,7 +40,6 @@ class AsignacionListView(LoginRequiredMixin, ListView):
                 "detalles__activo__tipo_activo",
                 "detalles__activo__estado_activo",
             )
-            .order_by("-fecha_asignacion", "-id")
         )
 
         busqueda = self.request.GET.get("q", "").strip()
@@ -70,7 +73,10 @@ class AsignacionListView(LoginRequiredMixin, ListView):
         if fecha_hasta:
             queryset = queryset.filter(fecha_asignacion__lte=fecha_hasta)
 
-        return queryset.distinct()
+        orden = self.request.GET.get("orden", "recientes").strip()
+        campos_orden = self.ORDENES_FECHA.get(orden, self.ORDENES_FECHA["recientes"])
+
+        return queryset.distinct().order_by(*campos_orden)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -79,6 +85,7 @@ class AsignacionListView(LoginRequiredMixin, ListView):
         context["acta_seleccionada"] = self.request.GET.get("acta", "").strip()
         context["fecha_desde"] = self.request.GET.get("fecha_desde", "").strip()
         context["fecha_hasta"] = self.request.GET.get("fecha_hasta", "").strip()
+        context["orden_seleccionado"] = self.request.GET.get("orden", "recientes").strip()
         return context
 class AsignacionDetailView(LoginRequiredMixin, DetailView):
     model = Asignacion

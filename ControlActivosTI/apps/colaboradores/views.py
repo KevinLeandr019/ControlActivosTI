@@ -63,7 +63,7 @@ class ColaboradorListView(LoginRequiredMixin, ListView):
                     distinct=True,
                 )
             )
-            .order_by("apellidos", "nombres")
+            .order_by("empresa__nombre", "apellidos", "nombres")
         )
 
         busqueda = self.request.GET.get("q", "").strip()
@@ -102,8 +102,10 @@ class ColaboradorListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        columnas_seleccionadas = self.get_selected_columns()
         context["columnas_disponibles"] = self.COLUMNAS_DISPONIBLES
-        context["columnas_seleccionadas"] = self.get_selected_columns()
+        context["columnas_seleccionadas"] = columnas_seleccionadas
+        context["total_columnas_tabla"] = len(columnas_seleccionadas) + 1
         context["busqueda"] = self.request.GET.get("q", "").strip()
         context["estado_seleccionado"] = self.request.GET.get("estado", "").strip()
         context["empresa_seleccionada"] = self.request.GET.get("empresa", "").strip()
