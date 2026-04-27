@@ -7,17 +7,19 @@ from .models import ActaEntrega
 class ActaEntregaAdmin(admin.ModelAdmin):
     list_display = (
         "asignacion",
+        "tipo",
         "nombre_archivo",
         "version_plantilla",
         "usuario_generador",
         "fecha_generacion",
     )
     search_fields = (
-        "asignacion__activo__codigo",
-        "asignacion__activo__serie",
+        "asignacion__codigo_asignacion",
+        "asignacion__detalles__activo__codigo",
+        "asignacion__detalles__activo__serie",
         "asignacion__colaborador__nombres",
         "asignacion__colaborador__apellidos",
         "nombre_archivo",
     )
-    list_filter = ("version_plantilla", "fecha_generacion")
+    list_filter = ("tipo", "version_plantilla", "fecha_generacion")
     list_select_related = ("asignacion", "usuario_generador")

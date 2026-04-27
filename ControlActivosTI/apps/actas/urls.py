@@ -6,7 +6,7 @@ app_name = "actas"
 
 urlpatterns = [
     path(
-        "asignacion/<int:asignacion_id>/descargar/",
+        "asignacion/<int:asignacion_id>/<str:tipo>/descargar/",
         DescargarActaPorAsignacionView.as_view(),
         name="descargar_por_asignacion",
     ),

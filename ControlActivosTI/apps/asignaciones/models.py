@@ -152,6 +152,20 @@ class Asignacion(models.Model):
         codigos = [detalle.activo.codigo for detalle in self.detalles.select_related("activo")]
         return ", ".join(codigos) if codigos else "-"
 
+    def _acta_por_tipo(self, tipo):
+        actas_prefetch = getattr(self, "_prefetched_objects_cache", {}).get("actas")
+        if actas_prefetch is not None:
+            return next((acta for acta in actas_prefetch if acta.tipo == tipo), None)
+        return self.actas.filter(tipo=tipo).first()
+
+    @property
+    def acta_entrega(self):
+        return self._acta_por_tipo("ENTREGA")
+
+    @property
+    def acta_recepcion(self):
+        return self._acta_por_tipo("RECEPCION")
+
 
 class AsignacionDetalle(models.Model):
     asignacion = models.ForeignKey(

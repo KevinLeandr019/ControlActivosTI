@@ -148,6 +148,18 @@ class AsignacionCreateFormTests(TestCase):
         self.assertFalse(detalle.activa)
         self.assertEqual(detalle.estado_activo_devolucion, self.estado_no_disponible)
         self.assertEqual(self.activo_disponible.estado_activo, self.estado_no_disponible)
+        self.assertTrue(
+            ActaEntrega.objects.filter(
+                asignacion=asignacion,
+                tipo=ActaEntrega.TipoActa.ENTREGA,
+            ).exists()
+        )
+        self.assertTrue(
+            ActaEntrega.objects.filter(
+                asignacion=asignacion,
+                tipo=ActaEntrega.TipoActa.RECEPCION,
+            ).exists()
+        )
 
     def test_devolucion_view_allows_historical_ceco_disabled_after_assignment(self):
         asignacion = Asignacion.objects.create(
@@ -193,6 +205,7 @@ class AsignacionCreateFormTests(TestCase):
 
         self.assertEqual(asignacion.estado_asignacion, Asignacion.EstadoAsignacion.CERRADA)
         self.assertFalse(detalle.activa)
+        self.assertEqual(asignacion.actas.count(), 2)
 
 
 class AsignacionListViewTests(TestCase):

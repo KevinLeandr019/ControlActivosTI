@@ -7,7 +7,7 @@ from django.urls import reverse, reverse_lazy
 from django.utils.dateparse import parse_date
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
-from apps.actas.services import generar_o_actualizar_acta
+from apps.actas.services import generar_o_actualizar_acta, generar_o_actualizar_actas_devolucion
 
 from .forms import (
     AsignacionCreateForm,
@@ -32,6 +32,7 @@ class AsignacionListView(LoginRequiredMixin, ListView):
                 "usuario_recepcion",
             )
             .prefetch_related(
+                "actas",
                 "detalles__activo__tipo_activo",
                 "detalles__activo__estado_activo",
             )
@@ -57,9 +58,9 @@ class AsignacionListView(LoginRequiredMixin, ListView):
 
         acta = self.request.GET.get("acta", "").strip()
         if acta == "con":
-            queryset = queryset.filter(acta__isnull=False)
+            queryset = queryset.filter(actas__isnull=False)
         elif acta == "sin":
-            queryset = queryset.filter(acta__isnull=True)
+            queryset = queryset.filter(actas__isnull=True)
 
         fecha_desde = parse_date(self.request.GET.get("fecha_desde", "").strip())
         if fecha_desde:
@@ -97,6 +98,7 @@ class AsignacionDetailView(LoginRequiredMixin, DetailView):
                 "usuario_recepcion",
             )
             .prefetch_related(
+                "actas",
                 "detalles__activo__tipo_activo",
                 "detalles__activo__estado_activo",
                 "detalles__activo__fotos",
@@ -193,11 +195,16 @@ class AsignacionDevolucionView(LoginRequiredMixin, UpdateView):
             asignacion.usuario_recepcion = self.request.user
             asignacion.save()
 
+            if not asignacion.actas.filter(tipo="ENTREGA").exclude(archivo="").exists():
+                generar_o_actualizar_acta(asignacion, self.request.user)
+
             for detalle_form in formset.forms:
                 detalle = detalle_form.save(commit=False)
                 detalle.asignacion = asignacion
                 detalle.activa = False
                 detalle.save()
+
+            generar_o_actualizar_actas_devolucion(asignacion, self.request.user)
 
         messages.success(self.request, "La devolución fue registrada correctamente.")
         return HttpResponseRedirect(self.get_success_url())
