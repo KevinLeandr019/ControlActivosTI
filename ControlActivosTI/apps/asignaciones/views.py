@@ -1,8 +1,10 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
+from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
+from django.utils.dateparse import parse_date
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
 from apps.actas.services import generar_o_actualizar_acta
@@ -22,7 +24,7 @@ class AsignacionListView(LoginRequiredMixin, ListView):
     paginate_by = 10
 
     def get_queryset(self):
-        return (
+        queryset = (
             Asignacion.objects.select_related(
                 "colaborador",
                 "centro_costo",
@@ -36,7 +38,47 @@ class AsignacionListView(LoginRequiredMixin, ListView):
             .order_by("-fecha_asignacion", "-id")
         )
 
+        busqueda = self.request.GET.get("q", "").strip()
+        if busqueda:
+            queryset = queryset.filter(
+                Q(codigo_asignacion__icontains=busqueda)
+                | Q(colaborador__nombres__icontains=busqueda)
+                | Q(colaborador__apellidos__icontains=busqueda)
+                | Q(colaborador__cedula__icontains=busqueda)
+                | Q(detalles__activo__codigo__icontains=busqueda)
+            )
 
+        estado = self.request.GET.get("estado", "").strip()
+        if estado in {
+            Asignacion.EstadoAsignacion.ACTIVA,
+            Asignacion.EstadoAsignacion.CERRADA,
+        }:
+            queryset = queryset.filter(estado_asignacion=estado)
+
+        acta = self.request.GET.get("acta", "").strip()
+        if acta == "con":
+            queryset = queryset.filter(acta__isnull=False)
+        elif acta == "sin":
+            queryset = queryset.filter(acta__isnull=True)
+
+        fecha_desde = parse_date(self.request.GET.get("fecha_desde", "").strip())
+        if fecha_desde:
+            queryset = queryset.filter(fecha_asignacion__gte=fecha_desde)
+
+        fecha_hasta = parse_date(self.request.GET.get("fecha_hasta", "").strip())
+        if fecha_hasta:
+            queryset = queryset.filter(fecha_asignacion__lte=fecha_hasta)
+
+        return queryset.distinct()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["busqueda"] = self.request.GET.get("q", "").strip()
+        context["estado_seleccionado"] = self.request.GET.get("estado", "").strip()
+        context["acta_seleccionada"] = self.request.GET.get("acta", "").strip()
+        context["fecha_desde"] = self.request.GET.get("fecha_desde", "").strip()
+        context["fecha_hasta"] = self.request.GET.get("fecha_hasta", "").strip()
+        return context
 class AsignacionDetailView(LoginRequiredMixin, DetailView):
     model = Asignacion
     template_name = "asignaciones/detalle.html"

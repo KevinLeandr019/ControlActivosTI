@@ -1,11 +1,13 @@
 from datetime import date
 
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
+from apps.actas.models import ActaEntrega
 from apps.activos.models import Activo
-from apps.catalogos.models import Area, Cargo, EstadoActivo, TipoActivo, Ubicacion
+from apps.catalogos.models import Area, Cargo, CentroCosto, Empresa, EstadoActivo, TipoActivo, Ubicacion
 from apps.colaboradores.models import Colaborador
 
 from apps.asignaciones.forms import AsignacionCreateForm
@@ -21,6 +23,12 @@ class AsignacionCreateFormTests(TestCase):
         self.area = Area.objects.create(nombre="TI")
         self.cargo = Cargo.objects.create(nombre="Analista")
         self.ubicacion = Ubicacion.objects.create(nombre="Matriz")
+        self.empresa = Empresa.objects.create(nombre="Acme")
+        self.centro_costo = CentroCosto.objects.create(
+            codigo="TI001",
+            nombre="Tecnologia",
+            empresa=self.empresa,
+        )
         self.tipo_activo = TipoActivo.objects.create(nombre="Laptop")
         self.estado_disponible = EstadoActivo.objects.create(
             nombre="Disponible",
@@ -42,6 +50,7 @@ class AsignacionCreateFormTests(TestCase):
             cargo=self.cargo,
             area=self.area,
             ubicacion=self.ubicacion,
+            centro_costo=self.centro_costo,
             fecha_ingreso=date(2024, 1, 10),
         )
         self.activo_disponible = Activo.objects.create(
@@ -139,3 +148,140 @@ class AsignacionCreateFormTests(TestCase):
         self.assertFalse(detalle.activa)
         self.assertEqual(detalle.estado_activo_devolucion, self.estado_no_disponible)
         self.assertEqual(self.activo_disponible.estado_activo, self.estado_no_disponible)
+
+
+class AsignacionListViewTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="listtester",
+            password="secret123",
+        )
+        self.area = Area.objects.create(nombre="Soporte")
+        self.cargo = Cargo.objects.create(nombre="Tecnico")
+        self.ubicacion = Ubicacion.objects.create(nombre="Sucursal")
+        self.empresa = Empresa.objects.create(nombre="Beta")
+        self.centro_costo = CentroCosto.objects.create(
+            codigo="OPS001",
+            nombre="Operaciones TI",
+            empresa=self.empresa,
+        )
+        self.tipo_laptop = TipoActivo.objects.create(nombre="Laptop")
+        self.tipo_mouse = TipoActivo.objects.create(nombre="Mouse")
+        self.estado_disponible = EstadoActivo.objects.create(
+            nombre="Disponible",
+            permite_asignacion=True,
+        )
+        self.estado_asignado = EstadoActivo.objects.create(
+            nombre="Asignado",
+            permite_asignacion=False,
+        )
+        self.estado_devuelto = EstadoActivo.objects.create(
+            nombre="Bodega",
+            permite_asignacion=True,
+        )
+        self.colaborador_ana = Colaborador.objects.create(
+            nombres="Ana",
+            apellidos="Perez",
+            cedula="1111111111",
+            correo_corporativo="ana.list@example.com",
+            cargo=self.cargo,
+            area=self.area,
+            ubicacion=self.ubicacion,
+            centro_costo=self.centro_costo,
+            fecha_ingreso=date(2024, 1, 10),
+        )
+        self.colaborador_luis = Colaborador.objects.create(
+            nombres="Luis",
+            apellidos="Mena",
+            cedula="2222222222",
+            correo_corporativo="luis.list@example.com",
+            cargo=self.cargo,
+            area=self.area,
+            ubicacion=self.ubicacion,
+            centro_costo=self.centro_costo,
+            fecha_ingreso=date(2024, 2, 15),
+        )
+        self.activo_laptop = Activo.objects.create(
+            tipo_activo=self.tipo_laptop,
+            marca="Dell",
+            modelo="Latitude",
+            serie="LAT001",
+            estado_activo=self.estado_disponible,
+        )
+        self.activo_mouse = Activo.objects.create(
+            tipo_activo=self.tipo_mouse,
+            marca="Logitech",
+            modelo="M185",
+            serie="MOU001",
+            estado_activo=self.estado_disponible,
+        )
+        self.asignacion_activa = Asignacion.objects.create(
+            colaborador=self.colaborador_ana,
+            fecha_asignacion=date(2026, 4, 20),
+            usuario_responsable=self.user,
+        )
+        AsignacionDetalle.objects.create(
+            asignacion=self.asignacion_activa,
+            activo=self.activo_laptop,
+            orden=1,
+        )
+        self.asignacion_cerrada = Asignacion.objects.create(
+            colaborador=self.colaborador_luis,
+            fecha_asignacion=date(2026, 4, 10),
+            usuario_responsable=self.user,
+            estado_asignacion=Asignacion.EstadoAsignacion.CERRADA,
+            fecha_devolucion=date(2026, 4, 15),
+            usuario_recepcion=self.user,
+        )
+        AsignacionDetalle.objects.create(
+            asignacion=self.asignacion_cerrada,
+            activo=self.activo_mouse,
+            orden=1,
+            activa=False,
+            estado_activo_devolucion=self.estado_devuelto,
+        )
+        ActaEntrega.objects.create(
+            asignacion=self.asignacion_activa,
+            archivo=SimpleUploadedFile("acta.txt", b"contenido"),
+            nombre_archivo="acta.txt",
+            usuario_generador=self.user,
+        )
+
+    def test_list_view_filters_by_search_term(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("asignaciones:lista"), {"q": self.activo_laptop.codigo})
+
+        self.assertEqual(response.status_code, 200)
+        asignaciones = list(response.context["asignaciones"])
+        self.assertEqual(asignaciones, [self.asignacion_activa])
+
+    def test_list_view_filters_by_estado(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("asignaciones:lista"), {"estado": Asignacion.EstadoAsignacion.CERRADA})
+
+        self.assertEqual(response.status_code, 200)
+        asignaciones = list(response.context["asignaciones"])
+        self.assertEqual(asignaciones, [self.asignacion_cerrada])
+
+    def test_list_view_filters_by_acta(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("asignaciones:lista"), {"acta": "con"})
+
+        self.assertEqual(response.status_code, 200)
+        asignaciones = list(response.context["asignaciones"])
+        self.assertEqual(asignaciones, [self.asignacion_activa])
+
+    def test_list_view_filters_by_fecha_range(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse("asignaciones:lista"),
+            {"fecha_desde": "2026-04-15", "fecha_hasta": "2026-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        asignaciones = list(response.context["asignaciones"])
+        self.assertEqual(asignaciones, [self.asignacion_activa])
