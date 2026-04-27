@@ -50,7 +50,7 @@ class ActivoListView(LoginRequiredMixin, ListView):
         queryset = (
             Activo.objects.select_related("tipo_activo", "estado_activo")
             .prefetch_related("fotos")
-            .order_by("codigo")
+            .order_by("tipo_activo__nombre", "codigo")
         )
 
         busqueda = self.request.GET.get("q", "").strip()
@@ -74,8 +74,10 @@ class ActivoListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        columnas_seleccionadas = self.get_selected_columns()
         context["columnas_disponibles"] = self.COLUMNAS_DISPONIBLES
-        context["columnas_seleccionadas"] = self.get_selected_columns()
+        context["columnas_seleccionadas"] = columnas_seleccionadas
+        context["total_columnas_tabla"] = len(columnas_seleccionadas) + 1
         context["busqueda"] = self.request.GET.get("q", "").strip()
         context["estado_seleccionado"] = self.request.GET.get("estado", "").strip()
         context["tipo_seleccionado"] = self.request.GET.get("tipo", "").strip()

@@ -133,6 +133,19 @@
             </thead>
             <tbody class="divide-y divide-slate-100">
                 {% for activo in activos %}
+                    {% ifchanged activo.tipo_activo_id %}
+                        <tr class="bg-slate-50/80">
+                            <td colspan="{{ total_columnas_tabla }}" class="px-4 py-3">
+                                <div class="flex items-center gap-3">
+                                    <span class="h-px flex-1 bg-slate-200"></span>
+                                    <span class="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                        {{ activo.tipo_activo }}
+                                    </span>
+                                    <span class="h-px flex-1 bg-slate-200"></span>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endifchanged %}
                     <tr class="align-top text-slate-700">
                         {% if "codigo" in columnas_seleccionadas %}
                             <td class="px-4 py-3">
@@ -170,7 +183,7 @@
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="20" class="px-4 py-8 text-center text-sm text-slate-500">No hay activos registrados.</td>
+                        <td colspan="{{ total_columnas_tabla }}" class="px-4 py-8 text-center text-sm text-slate-500">No hay activos registrados.</td>
                     </tr>
                 {% endfor %}
             </tbody>

@@ -172,6 +172,36 @@
                                 </div>
                             </div>
                             <p class="mt-3 text-sm leading-6 text-slate-700">{{ evento.detalle }}</p>
+                            {% if evento.campo_afectado != "ninguno" or evento.costo_adicional or evento.nuevo_estado_activo %}
+                                <div class="mt-3 grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 sm:grid-cols-2">
+                                    {% if evento.campo_afectado != "ninguno" %}
+                                        <div>
+                                            <span class="font-semibold text-slate-800">Campo:</span>
+                                            {{ evento.get_campo_afectado_display }}
+                                        </div>
+                                        <div>
+                                            <span class="font-semibold text-slate-800">Cambio:</span>
+                                            {{ evento.valor_anterior|default:"-" }} -> {{ evento.valor_nuevo|default:"-" }}
+                                        </div>
+                                    {% endif %}
+                                    {% if evento.costo_adicional %}
+                                        <div>
+                                            <span class="font-semibold text-slate-800">Costo:</span>
+                                            ${{ evento.costo_adicional|floatformat:2 }}
+                                        </div>
+                                        <div>
+                                            <span class="font-semibold text-slate-800">Impacta valor:</span>
+                                            {{ evento.sumar_costo_al_valor|yesno:"Si,No" }}
+                                        </div>
+                                    {% endif %}
+                                    {% if evento.nuevo_estado_activo %}
+                                        <div>
+                                            <span class="font-semibold text-slate-800">Nuevo estado:</span>
+                                            {{ evento.nuevo_estado_activo }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
                         </div>
                     {% endfor %}
                 </div>

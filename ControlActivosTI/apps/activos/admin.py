@@ -69,6 +69,64 @@ class FotoActivoInline(admin.TabularInline):
     vista_previa.short_description = "Vista previa"
 
 
+class EventoActivoAdminForm(forms.ModelForm):
+    class Meta:
+        model = EventoActivo
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        etiquetas = {
+            "activo": "Activo afectado",
+            "tipo_evento": "Tipo de evento",
+            "fecha_evento": "Fecha del evento",
+            "detalle": "Detalle del trabajo realizado",
+            "campo_afectado": "Dato del activo que se actualizara",
+            "valor_nuevo": "Nuevo valor final del dato seleccionado",
+            "costo_adicional": "Costo del repuesto o mejora",
+            "sumar_costo_al_valor": "Sumar este costo al valor del activo",
+            "nuevo_estado_activo": "Estado final del activo",
+            "usuario_responsable": "Responsable del registro",
+        }
+        ayudas = {
+            "campo_afectado": (
+                "Elige RAM, disco, procesador o sistema operativo solo si este evento debe "
+                "modificar la ficha actual del activo."
+            ),
+            "valor_nuevo": (
+                "No es el precio. Es el dato tecnico final que quedara en el activo, "
+                "por ejemplo: 16 GB, 512 GB SSD o Windows 11."
+            ),
+            "costo_adicional": (
+                "Usa este campo solo si se compro una pieza o mejora. Para mantenimiento "
+                "o limpieza simple, dejalo vacio."
+            ),
+            "sumar_costo_al_valor": (
+                "Activalo solo cuando el costo adicional deba aumentar el valor registrado del activo."
+            ),
+            "nuevo_estado_activo": (
+                "Opcional. Usalo si el evento deja el activo en otro estado, por ejemplo Mantenimiento o Baja."
+            ),
+        }
+        placeholders = {
+            "valor_nuevo": "Ej: 16 GB, 1 TB SSD, Intel Core i7, Windows 11",
+            "costo_adicional": "Ej: 40.00",
+        }
+
+        for nombre_campo, etiqueta in etiquetas.items():
+            if nombre_campo in self.fields:
+                self.fields[nombre_campo].label = etiqueta
+
+        for nombre_campo, ayuda in ayudas.items():
+            if nombre_campo in self.fields:
+                self.fields[nombre_campo].help_text = ayuda
+
+        for nombre_campo, placeholder in placeholders.items():
+            if nombre_campo in self.fields:
+                self.fields[nombre_campo].widget.attrs["placeholder"] = placeholder
+
+
 @admin.register(Activo)
 class ActivoAdmin(admin.ModelAdmin):
     form = ActivoAdminForm
@@ -126,17 +184,76 @@ class ActivoAdmin(admin.ModelAdmin):
 
 @admin.register(EventoActivo)
 class EventoActivoAdmin(admin.ModelAdmin):
+    form = EventoActivoAdminForm
     list_display = (
         "activo",
         "tipo_evento",
+        "campo_afectado",
+        "valor_anterior",
+        "valor_nuevo",
+        "costo_adicional",
+        "sumar_costo_al_valor",
         "fecha_evento",
         "usuario_responsable",
     )
+    fields = (
+        "activo",
+        "tipo_evento",
+        "fecha_evento",
+        "detalle",
+        "campo_afectado",
+        "valor_anterior_registrado",
+        "valor_nuevo",
+        "resumen_impacto",
+        "costo_adicional",
+        "sumar_costo_al_valor",
+        "nuevo_estado_activo",
+        "usuario_responsable",
+    )
+    readonly_fields = ("valor_anterior_registrado", "resumen_impacto")
     search_fields = (
         "activo__codigo",
         "activo__serie",
         "tipo_evento__nombre",
         "detalle",
+        "valor_anterior",
+        "valor_nuevo",
     )
-    list_filter = ("tipo_evento", "fecha_evento")
-    list_select_related = ("activo", "tipo_evento", "usuario_responsable")
+    list_filter = (
+        "tipo_evento",
+        "campo_afectado",
+        "sumar_costo_al_valor",
+        "nuevo_estado_activo",
+        "fecha_evento",
+    )
+    list_select_related = (
+        "activo",
+        "tipo_evento",
+        "usuario_responsable",
+        "nuevo_estado_activo",
+    )
+
+    def valor_anterior_registrado(self, obj):
+        if obj and obj.valor_anterior:
+            return obj.valor_anterior
+        return "Se capturara automaticamente al guardar el evento."
+
+    valor_anterior_registrado.short_description = "Valor anterior del dato seleccionado"
+
+    def resumen_impacto(self, obj):
+        if not obj or not obj.pk:
+            return "Despues de guardar, aqui veras el resumen del cambio aplicado al activo."
+
+        cambios = []
+        if obj.campo_afectado != EventoActivo.CampoAfectado.NINGUNO:
+            cambios.append(
+                f"{obj.get_campo_afectado_display()}: {obj.valor_anterior or '-'} -> {obj.valor_nuevo or '-'}"
+            )
+        if obj.sumar_costo_al_valor and obj.costo_adicional:
+            cambios.append(f"Valor del activo: +${obj.costo_adicional}")
+        if obj.nuevo_estado_activo_id:
+            cambios.append(f"Estado final: {obj.nuevo_estado_activo}")
+
+        return " | ".join(cambios) if cambios else "Evento informativo: no modifica la ficha del activo."
+
+    resumen_impacto.short_description = "Resumen del impacto"

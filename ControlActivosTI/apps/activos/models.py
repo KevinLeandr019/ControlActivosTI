@@ -180,6 +180,13 @@ class FotoActivo(models.Model):
 
 
 class EventoActivo(models.Model):
+    class CampoAfectado(models.TextChoices):
+        NINGUNO = "ninguno", "Ninguno"
+        CPU = "cpu", "Procesador"
+        RAM = "ram", "RAM"
+        DISCO = "disco", "Disco"
+        SISTEMA_OPERATIVO = "sistema_operativo", "Sistema operativo"
+
     activo = models.ForeignKey(
         Activo,
         on_delete=models.CASCADE,
@@ -192,6 +199,36 @@ class EventoActivo(models.Model):
     )
     fecha_evento = models.DateTimeField(default=timezone.now)
     detalle = models.TextField()
+    campo_afectado = models.CharField(
+        max_length=30,
+        choices=CampoAfectado.choices,
+        default=CampoAfectado.NINGUNO,
+    )
+    valor_anterior = models.CharField(max_length=150, blank=True, editable=False)
+    valor_nuevo = models.CharField(
+        max_length=150,
+        blank=True,
+        help_text="Nuevo valor tecnico que se aplicara al activo, por ejemplo 16 GB.",
+    )
+    costo_adicional = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Costo de repuesto o mejora. No aplica para mantenimiento simple.",
+    )
+    sumar_costo_al_valor = models.BooleanField(
+        default=False,
+        help_text="Suma el costo adicional al valor actual del activo.",
+    )
+    nuevo_estado_activo = models.ForeignKey(
+        EstadoActivo,
+        on_delete=models.PROTECT,
+        related_name="eventos_actualizacion",
+        null=True,
+        blank=True,
+        help_text="Estado que tomara el activo despues del evento, si aplica.",
+    )
     usuario_responsable = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -206,3 +243,63 @@ class EventoActivo(models.Model):
 
     def __str__(self):
         return f"{self.activo.codigo} - {self.tipo_evento.nombre}"
+
+    def clean(self):
+        super().clean()
+
+        errores = {}
+        afecta_campo = self.campo_afectado != self.CampoAfectado.NINGUNO
+
+        if afecta_campo and not (self.valor_nuevo or "").strip():
+            errores["valor_nuevo"] = "Ingresa el nuevo valor tecnico que se aplicara al activo."
+
+        if afecta_campo and self.activo_id and not self.activo.requiere_especificaciones_tecnicas():
+            errores["campo_afectado"] = "Este tipo de activo no maneja especificaciones tecnicas editables."
+
+        if self.sumar_costo_al_valor and self.costo_adicional in (None, ""):
+            errores["costo_adicional"] = "Ingresa el costo adicional que se sumara al valor del activo."
+
+        if self.costo_adicional is not None and self.costo_adicional < 0:
+            errores["costo_adicional"] = "El costo adicional no puede ser negativo."
+
+        if errores:
+            raise ValidationError(errores)
+
+    def _obtener_valor_actual(self):
+        if self.campo_afectado == self.CampoAfectado.NINGUNO or not self.activo_id:
+            return ""
+
+        return getattr(self.activo, self.campo_afectado, "") or ""
+
+    def _actualizar_activo(self):
+        if not self.activo_id:
+            return
+
+        campos_actualizados = []
+        if self.campo_afectado != self.CampoAfectado.NINGUNO:
+            setattr(self.activo, self.campo_afectado, self.valor_nuevo.strip())
+            campos_actualizados.append(self.campo_afectado)
+
+        if self.sumar_costo_al_valor and self.costo_adicional is not None:
+            valor_actual = self.activo.valor or 0
+            self.activo.valor = valor_actual + self.costo_adicional
+            campos_actualizados.append("valor")
+
+        if self.nuevo_estado_activo_id:
+            self.activo.estado_activo = self.nuevo_estado_activo
+            campos_actualizados.append("estado_activo")
+
+        if campos_actualizados:
+            self.activo.save(update_fields=[*campos_actualizados, "updated_at"])
+
+    def save(self, *args, **kwargs):
+        es_nuevo = self._state.adding
+
+        if es_nuevo and self.campo_afectado != self.CampoAfectado.NINGUNO and not self.valor_anterior:
+            self.valor_anterior = self._obtener_valor_actual()
+
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+        if es_nuevo:
+            self._actualizar_activo()
