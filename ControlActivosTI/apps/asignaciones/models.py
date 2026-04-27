@@ -75,21 +75,27 @@ class Asignacion(models.Model):
     def clean(self):
         super().clean()
 
-        if self.colaborador_id and self.colaborador.estado != Colaborador.EstadoColaborador.ACTIVO:
+        esta_activa = self.estado_asignacion == self.EstadoAsignacion.ACTIVA
+
+        if (
+            esta_activa
+            and self.colaborador_id
+            and self.colaborador.estado != Colaborador.EstadoColaborador.ACTIVO
+        ):
             raise ValidationError({"colaborador": "Solo se puede asignar a colaboradores activos."})
 
         ceco = self.centro_costo if self.centro_costo_id else None
-        if self.colaborador_id:
+        if esta_activa and self.colaborador_id:
             ceco = ceco or getattr(self.colaborador, "centro_costo", None)
             if not ceco:
                 raise ValidationError(
                     {"colaborador": "El colaborador debe tener un CECO vigente antes de asignar activos."}
                 )
 
-        if ceco and (not ceco.activo or not ceco.acepta_asignaciones):
+        if esta_activa and ceco and (not ceco.activo or not ceco.acepta_asignaciones):
             raise ValidationError({"centro_costo": "El CECO del colaborador no esta habilitado para asignaciones."})
 
-        if self.estado_asignacion == self.EstadoAsignacion.ACTIVA:
+        if esta_activa:
             if self.fecha_devolucion:
                 raise ValidationError(
                     {"fecha_devolucion": "Una asignación activa no puede tener fecha de devolución."}
