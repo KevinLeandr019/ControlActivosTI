@@ -3,6 +3,7 @@ from django.db.models import Prefetch, Q
 from django.views.generic import DetailView, ListView
 
 from apps.asignaciones.models import AsignacionDetalle
+from apps.catalogos.models import EstadoActivo, TipoActivo
 
 from .models import Activo, EventoActivo, FotoActivo
 
@@ -61,6 +62,14 @@ class ActivoListView(LoginRequiredMixin, ListView):
                 | Q(serie__icontains=busqueda)
             )
 
+        estado_id = self.request.GET.get("estado", "").strip()
+        if estado_id.isdigit():
+            queryset = queryset.filter(estado_activo_id=estado_id)
+
+        tipo_id = self.request.GET.get("tipo", "").strip()
+        if tipo_id.isdigit():
+            queryset = queryset.filter(tipo_activo_id=tipo_id)
+
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -68,6 +77,10 @@ class ActivoListView(LoginRequiredMixin, ListView):
         context["columnas_disponibles"] = self.COLUMNAS_DISPONIBLES
         context["columnas_seleccionadas"] = self.get_selected_columns()
         context["busqueda"] = self.request.GET.get("q", "").strip()
+        context["estado_seleccionado"] = self.request.GET.get("estado", "").strip()
+        context["tipo_seleccionado"] = self.request.GET.get("tipo", "").strip()
+        context["estados_activo"] = EstadoActivo.objects.filter(activo=True).order_by("nombre")
+        context["tipos_activo"] = TipoActivo.objects.filter(activo=True).order_by("nombre")
         return context
 
 
