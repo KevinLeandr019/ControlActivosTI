@@ -1,3 +1,6 @@
+import re
+import unicodedata
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -15,6 +18,27 @@ TIPOS_ACTIVO_CON_ESPECIFICACIONES = (
     "computador",
     "computadora",
 )
+
+PREFIJOS_TIPOS_ACTIVO = {
+    "laptop": "LAP",
+    "mouse": "MOU",
+    "mousepad": "MOUP",
+    "teclado": "TEC",
+    "base para laptop": "BLP",
+    "pc": "PC",
+}
+
+
+def normalizar_nombre_tipo(nombre):
+    nombre = unicodedata.normalize("NFKD", nombre or "")
+    nombre = "".join(caracter for caracter in nombre if not unicodedata.combining(caracter))
+    nombre = re.sub(r"[^a-zA-Z0-9]+", " ", nombre).strip().lower()
+    return re.sub(r"\s+", " ", nombre)
+
+
+def obtener_base_prefijo(nombre):
+    nombre_normalizado = normalizar_nombre_tipo(nombre)
+    return re.sub(r"[^A-Z0-9]+", "", nombre_normalizado.upper()) or "GEN"
 
 
 def ruta_foto_activo(instance, filename):
@@ -66,19 +90,40 @@ class Activo(models.Model):
         return f"{self.codigo} - {self.marca} {self.modelo}"
 
     def _obtener_prefijo_tipo(self):
-        nombre_tipo = (self.tipo_activo.nombre or "").strip().lower()
+        nombre_tipo = self.tipo_activo.nombre if self.tipo_activo_id else ""
+        nombre_normalizado = normalizar_nombre_tipo(nombre_tipo)
+        if nombre_normalizado in PREFIJOS_TIPOS_ACTIVO:
+            return PREFIJOS_TIPOS_ACTIVO[nombre_normalizado]
 
-        mapa_prefijos = {
-            "laptop": "LAP",
-            "pc": "PC",
-            "monitor": "MON",
-            "mouse": "MOU",
-            "teclado": "TEC",
-            "base": "BAS",
-            "cargador": "CAR",
+        base_prefijo = obtener_base_prefijo(nombre_tipo)
+        longitud_inicial = min(3, len(base_prefijo))
+        prefijos_reservados = {
+            prefijo
+            for tipo, prefijo in PREFIJOS_TIPOS_ACTIVO.items()
+            if tipo != nombre_normalizado
         }
+        prefijos_reservados.add("ACT")
 
-        return mapa_prefijos.get(nombre_tipo, "ACT")
+        for longitud in range(longitud_inicial, len(base_prefijo) + 1):
+            prefijo = base_prefijo[:longitud]
+            if prefijo in prefijos_reservados:
+                continue
+            existe_en_otro_tipo = Activo.objects.filter(
+                codigo__startswith=f"{prefijo}-",
+            ).exclude(tipo_activo_id=self.tipo_activo_id).exists()
+            if not existe_en_otro_tipo:
+                return prefijo
+
+        contador = 2
+        prefijo_base = base_prefijo[:13]
+        while True:
+            prefijo = f"{prefijo_base}{contador}"
+            existe_en_otro_tipo = Activo.objects.filter(
+                codigo__startswith=f"{prefijo}-",
+            ).exclude(tipo_activo_id=self.tipo_activo_id).exists()
+            if prefijo not in prefijos_reservados and not existe_en_otro_tipo:
+                return prefijo
+            contador += 1
 
     def requiere_especificaciones_tecnicas(self):
         nombre_tipo = (self.tipo_activo.nombre if self.tipo_activo_id else "").strip().lower()

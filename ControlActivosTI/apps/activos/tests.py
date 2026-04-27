@@ -59,6 +59,74 @@ class ActivoAdminFormTests(TestCase):
         self.assertEqual(activo.sistema_operativo, "Windows")
 
 
+class ActivoCodigoTests(TestCase):
+    def setUp(self):
+        self.estado = EstadoActivo.objects.create(nombre="Disponible", permite_asignacion=True)
+
+    def test_prefijos_principales_del_inventario(self):
+        casos = [
+            ("Laptop", "LAP"),
+            ("Mouse", "MOU"),
+            ("MousePad", "MOUP"),
+            ("Teclado", "TEC"),
+            ("Base para Laptop", "BLP"),
+            ("PC", "PC"),
+        ]
+
+        for indice, (nombre_tipo, prefijo) in enumerate(casos, start=1):
+            tipo = TipoActivo.objects.create(nombre=nombre_tipo)
+            activo = Activo.objects.create(
+                tipo_activo=tipo,
+                marca="Marca",
+                modelo=f"Modelo {indice}",
+                serie=f"SERIE-{indice}",
+                estado_activo=self.estado,
+            )
+
+            self.assertTrue(activo.codigo.startswith(f"{prefijo}-"))
+
+    def test_tipo_nuevo_extiende_prefijo_si_las_tres_primeras_letras_ya_existen(self):
+        tipo_cable = TipoActivo.objects.create(nombre="Cable")
+        primer_activo = Activo.objects.create(
+            tipo_activo=tipo_cable,
+            marca="Generico",
+            modelo="USB",
+            serie="CAB-001",
+            estado_activo=self.estado,
+        )
+        segundo_activo = Activo.objects.create(
+            tipo_activo=tipo_cable,
+            marca="Generico",
+            modelo="HDMI",
+            serie="CAB-002",
+            estado_activo=self.estado,
+        )
+        tipo_cabina = TipoActivo.objects.create(nombre="Cabina")
+        activo_colision = Activo.objects.create(
+            tipo_activo=tipo_cabina,
+            marca="Generico",
+            modelo="Audio",
+            serie="CABI-001",
+            estado_activo=self.estado,
+        )
+
+        self.assertEqual(primer_activo.codigo, "CAB-0001")
+        self.assertEqual(segundo_activo.codigo, "CAB-0002")
+        self.assertEqual(activo_colision.codigo, "CABI-0001")
+
+    def test_tipo_nuevo_no_usa_prefijo_act(self):
+        tipo = TipoActivo.objects.create(nombre="Activo especial")
+        activo = Activo.objects.create(
+            tipo_activo=tipo,
+            marca="Generico",
+            modelo="Especial",
+            serie="ACT-ESPECIAL-001",
+            estado_activo=self.estado,
+        )
+
+        self.assertEqual(activo.codigo, "ACTI-0001")
+
+
 class FotoActivoInlineFormTests(TestCase):
     def test_conserva_imagen_existente_si_no_se_sube_otra(self):
         estado = EstadoActivo.objects.create(nombre="Disponible", permite_asignacion=True)
