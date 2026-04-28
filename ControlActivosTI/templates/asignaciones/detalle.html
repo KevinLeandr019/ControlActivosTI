@@ -188,7 +188,7 @@
                         {% for acta in devolucion.actas.all %}
                             {% if acta.tipo == "RECEPCION" %}
                                 <a href="{% url 'actas:descargar_por_devolucion' devolucion.pk %}" class="rounded-lg bg-slate-700 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800">
-                                    Acta recepciÃ³n
+                                    Acta recepción
                                 </a>
                             {% endif %}
                         {% endfor %}
