@@ -12,6 +12,7 @@ from apps.colaboradores.models import Colaborador
 class Asignacion(models.Model):
     class EstadoAsignacion(models.TextChoices):
         ACTIVA = "ACTIVA", "Activa"
+        PARCIAL = "PARCIAL", "Parcial"
         CERRADA = "CERRADA", "Cerrada"
 
     codigo_asignacion = models.CharField(
@@ -75,6 +76,10 @@ class Asignacion(models.Model):
     def clean(self):
         super().clean()
 
+        esta_abierta = self.estado_asignacion in {
+            self.EstadoAsignacion.ACTIVA,
+            self.EstadoAsignacion.PARCIAL,
+        }
         esta_activa = self.estado_asignacion == self.EstadoAsignacion.ACTIVA
 
         if (
@@ -95,7 +100,7 @@ class Asignacion(models.Model):
         if esta_activa and ceco and (not ceco.activo or not ceco.acepta_asignaciones):
             raise ValidationError({"centro_costo": "El CECO del colaborador no esta habilitado para asignaciones."})
 
-        if esta_activa:
+        if esta_abierta:
             if self.fecha_devolucion:
                 raise ValidationError(
                     {"fecha_devolucion": "Una asignación activa no puede tener fecha de devolución."}
@@ -165,6 +170,40 @@ class Asignacion(models.Model):
     @property
     def acta_recepcion(self):
         return self._acta_por_tipo("RECEPCION")
+
+    @property
+    def total_activos_pendientes(self):
+        return self.detalles.filter(activa=True).count()
+
+    @property
+    def total_activos_devueltos(self):
+        return self.detalles.filter(activa=False).count()
+
+    def recalcular_estado_devolucion(self, guardar=True):
+        total = self.detalles.count()
+        pendientes = self.detalles.filter(activa=True).count()
+
+        if total and pendientes == 0:
+            self.estado_asignacion = self.EstadoAsignacion.CERRADA
+            ultima_devolucion = self.devoluciones.order_by("-fecha_devolucion", "-id").first()
+            if ultima_devolucion:
+                self.fecha_devolucion = ultima_devolucion.fecha_devolucion
+                self.usuario_recepcion = ultima_devolucion.usuario_recepcion
+                self.observaciones_devolucion = ultima_devolucion.observaciones or ""
+        elif total and pendientes < total:
+            self.estado_asignacion = self.EstadoAsignacion.PARCIAL
+            self.fecha_devolucion = None
+            self.usuario_recepcion = None
+            self.observaciones_devolucion = ""
+        else:
+            self.estado_asignacion = self.EstadoAsignacion.ACTIVA
+            self.fecha_devolucion = None
+            self.usuario_recepcion = None
+            self.observaciones_devolucion = ""
+
+        if guardar:
+            self.save()
+        return self.estado_asignacion
 
 
 class AsignacionDetalle(models.Model):
@@ -296,3 +335,119 @@ class AsignacionDetalle(models.Model):
     def foto_principal(self):
         fotos = list(self.activo.fotos.all())
         return fotos[0] if fotos else None
+
+
+class Devolucion(models.Model):
+    codigo_devolucion = models.CharField(
+        max_length=40,
+        unique=True,
+        editable=False,
+        db_index=True,
+        null=True,
+        blank=True,
+    )
+    asignacion = models.ForeignKey(
+        Asignacion,
+        on_delete=models.CASCADE,
+        related_name="devoluciones",
+    )
+    fecha_devolucion = models.DateField(default=timezone.now)
+    observaciones = models.TextField(blank=True)
+    usuario_recepcion = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="eventos_devolucion_registrados",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Devolucion"
+        verbose_name_plural = "Devoluciones"
+        ordering = ["-fecha_devolucion", "-id"]
+
+    def __str__(self):
+        codigo = self.codigo_devolucion or "SIN-CODIGO"
+        return f"{codigo} - {self.asignacion}"
+
+    def clean(self):
+        super().clean()
+        if self.asignacion_id and self.fecha_devolucion < self.asignacion.fecha_asignacion:
+            raise ValidationError(
+                {"fecha_devolucion": "La fecha de devolucion no puede ser anterior a la fecha de asignacion."}
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+            if not self.codigo_devolucion:
+                codigo = f"DEV-{self.pk:05d}"
+                Devolucion.objects.filter(pk=self.pk).update(codigo_devolucion=codigo)
+                self.codigo_devolucion = codigo
+
+
+class DevolucionDetalle(models.Model):
+    devolucion = models.ForeignKey(
+        Devolucion,
+        on_delete=models.CASCADE,
+        related_name="detalles",
+    )
+    detalle_asignacion = models.ForeignKey(
+        AsignacionDetalle,
+        on_delete=models.PROTECT,
+        related_name="devoluciones",
+    )
+    estado_activo_devolucion = models.ForeignKey(
+        EstadoActivo,
+        on_delete=models.PROTECT,
+        related_name="detalles_devolucion",
+    )
+    observaciones = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Detalle de devolucion"
+        verbose_name_plural = "Detalles de devolucion"
+        ordering = ["detalle_asignacion__orden", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["detalle_asignacion"],
+                name="unique_devolucion_por_detalle_asignacion",
+            ),
+            models.UniqueConstraint(
+                fields=["devolucion", "detalle_asignacion"],
+                name="unique_detalle_por_devolucion",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.devolucion} - {self.detalle_asignacion.activo.codigo}"
+
+    @property
+    def activo(self):
+        return self.detalle_asignacion.activo
+
+    def clean(self):
+        super().clean()
+
+        if self.detalle_asignacion_id and self.devolucion_id:
+            if self.detalle_asignacion.asignacion_id != self.devolucion.asignacion_id:
+                raise ValidationError(
+                    {"detalle_asignacion": "El activo no pertenece a la asignacion de esta devolucion."}
+                )
+
+        if self.detalle_asignacion_id and not self.pk and not self.detalle_asignacion.activa:
+            raise ValidationError({"detalle_asignacion": "Este activo ya fue devuelto."})
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+            detalle = self.detalle_asignacion
+            detalle.activa = False
+            detalle.estado_activo_devolucion = self.estado_activo_devolucion
+            detalle.observaciones_devolucion = self.observaciones
+            detalle.save()
+            self.devolucion.asignacion.recalcular_estado_devolucion()

@@ -35,6 +35,7 @@
                 >
                     <option value="">Todos los estados</option>
                     <option value="ACTIVA" {% if estado_seleccionado == "ACTIVA" %}selected{% endif %}>Activa</option>
+                    <option value="PARCIAL" {% if estado_seleccionado == "PARCIAL" %}selected{% endif %}>Parcial</option>
                     <option value="CERRADA" {% if estado_seleccionado == "CERRADA" %}selected{% endif %}>Cerrada</option>
                 </select>
             </div>
@@ -82,6 +83,7 @@
                     class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition duration-200 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
                 >
                     <option value="recientes" {% if orden_seleccionado == "recientes" %}selected{% endif %}>Mas recientes primero</option>
+                    <option value="actividad" {% if orden_seleccionado == "actividad" %}selected{% endif %}>Actividad mas reciente</option>
                     <option value="antiguas" {% if orden_seleccionado == "antiguas" %}selected{% endif %}>Mas antiguas primero</option>
                 </select>
             </div>
@@ -109,6 +111,8 @@
                 {% endif %}
                 {% if orden_seleccionado == "antiguas" %}
                     <span class="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">Orden: Mas antiguas primero</span>
+                {% elif orden_seleccionado == "actividad" %}
+                    <span class="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-medium text-cyan-700">Orden: Actividad mas reciente</span>
                 {% endif %}
             </div>
         {% endif %}
@@ -155,6 +159,8 @@
                         <td class="px-4 py-3">
                             {% if asignacion.estado_asignacion == "ACTIVA" %}
                                 <span class="rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700">Activa</span>
+                            {% elif asignacion.estado_asignacion == "PARCIAL" %}
+                                <span class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">Parcial</span>
                             {% else %}
                                 <span class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Cerrada</span>
                             {% endif %}
@@ -167,12 +173,12 @@
                                         Acta entrega
                                     </a>
                                 {% endif %}
-                                {% if asignacion.acta_recepcion %}
+                                {% comment %}
                                     <a href="{% url 'actas:descargar_por_asignacion' asignacion.pk 'RECEPCION' %}" class="rounded-lg bg-slate-700 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800">
                                         Acta recepción
                                     </a>
-                                {% endif %}
-                                {% if asignacion.estado_asignacion == "ACTIVA" %}
+                                {% endcomment %}
+                                {% if asignacion.estado_asignacion == "ACTIVA" or asignacion.estado_asignacion == "PARCIAL" %}
                                     <a href="{% url 'asignaciones:devolver' asignacion.pk %}" class="rounded-lg bg-cyan-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-cyan-700">
                                         Registrar devolución
                                     </a>

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Asignacion, AsignacionDetalle
+from .models import Asignacion, AsignacionDetalle, Devolucion, DevolucionDetalle
 
 
 class AsignacionDetalleInline(admin.TabularInline):
@@ -141,3 +141,49 @@ class AsignacionDetalleAdmin(admin.ModelAdmin):
         "activo",
         "estado_activo_devolucion",
     )
+
+
+class DevolucionDetalleInline(admin.TabularInline):
+    model = DevolucionDetalle
+    extra = 0
+    fields = ("detalle_asignacion", "estado_activo_devolucion", "observaciones")
+    raw_id_fields = ("detalle_asignacion", "estado_activo_devolucion")
+
+
+@admin.register(Devolucion)
+class DevolucionAdmin(admin.ModelAdmin):
+    list_display = (
+        "codigo_devolucion",
+        "asignacion",
+        "fecha_devolucion",
+        "usuario_recepcion",
+        "updated_at",
+    )
+    list_filter = ("fecha_devolucion",)
+    search_fields = (
+        "codigo_devolucion",
+        "asignacion__codigo_asignacion",
+        "asignacion__colaborador__nombres",
+        "asignacion__colaborador__apellidos",
+        "detalles__detalle_asignacion__activo__codigo",
+    )
+    readonly_fields = ("codigo_devolucion", "created_at", "updated_at")
+    raw_id_fields = ("asignacion", "usuario_recepcion")
+    inlines = [DevolucionDetalleInline]
+
+
+@admin.register(DevolucionDetalle)
+class DevolucionDetalleAdmin(admin.ModelAdmin):
+    list_display = (
+        "devolucion",
+        "detalle_asignacion",
+        "estado_activo_devolucion",
+        "updated_at",
+    )
+    list_filter = ("estado_activo_devolucion",)
+    search_fields = (
+        "devolucion__codigo_devolucion",
+        "detalle_asignacion__asignacion__codigo_asignacion",
+        "detalle_asignacion__activo__codigo",
+    )
+    raw_id_fields = ("devolucion", "detalle_asignacion", "estado_activo_devolucion")

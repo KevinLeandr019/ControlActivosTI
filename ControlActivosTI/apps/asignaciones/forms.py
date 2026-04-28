@@ -7,7 +7,7 @@ from apps.activos.models import Activo
 from apps.catalogos.models import EstadoActivo
 from apps.colaboradores.models import Colaborador
 
-from .models import Asignacion, AsignacionDetalle
+from .models import Asignacion, AsignacionDetalle, Devolucion, DevolucionDetalle
 
 
 BASE_CLASS = (
@@ -191,27 +191,28 @@ class AsignacionCreateForm(forms.ModelForm):
         return asignacion
 
 
-class AsignacionDevolucionForm(forms.ModelForm):
+class DevolucionForm(forms.ModelForm):
     class Meta:
-        model = Asignacion
+        model = Devolucion
         fields = [
             "fecha_devolucion",
-            "observaciones_devolucion",
+            "observaciones",
         ]
         widgets = {
             "fecha_devolucion": forms.DateInput(attrs={"type": "date"}),
-            "observaciones_devolucion": forms.Textarea(attrs={"rows": 4}),
+            "observaciones": forms.Textarea(attrs={"rows": 4}),
         }
 
     def __init__(self, *args, **kwargs):
+        self.asignacion = kwargs.pop("asignacion")
         super().__init__(*args, **kwargs)
         self.fields["fecha_devolucion"].initial = timezone.localdate()
         self.fields["fecha_devolucion"].widget.attrs["class"] = BASE_CLASS
-        self.fields["observaciones_devolucion"].widget.attrs["class"] = TEXTAREA_CLASS
+        self.fields["observaciones"].widget.attrs["class"] = TEXTAREA_CLASS
 
     def clean_fecha_devolucion(self):
         fecha_devolucion = self.cleaned_data["fecha_devolucion"]
-        if self.instance.fecha_asignacion and fecha_devolucion < self.instance.fecha_asignacion:
+        if self.asignacion.fecha_asignacion and fecha_devolucion < self.asignacion.fecha_asignacion:
             raise forms.ValidationError(
                 "La fecha de devolución no puede ser anterior a la fecha de asignación."
             )
@@ -219,6 +220,8 @@ class AsignacionDevolucionForm(forms.ModelForm):
 
 
 class AsignacionDetalleDevolucionForm(forms.ModelForm):
+    devolver = forms.BooleanField(required=False)
+
     class Meta:
         model = AsignacionDetalle
         fields = ["estado_activo_devolucion", "observaciones_devolucion"]
@@ -233,16 +236,31 @@ class AsignacionDetalleDevolucionForm(forms.ModelForm):
             .exclude(nombre__iexact="Asignado")
             .order_by("nombre")
         )
+        self.fields["estado_activo_devolucion"].required = False
+        self.fields["devolver"].widget.attrs["class"] = "h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
         self.fields["estado_activo_devolucion"].widget.attrs["class"] = BASE_CLASS
         self.fields["observaciones_devolucion"].widget.attrs["class"] = TEXTAREA_CLASS
 
     def clean(self):
         cleaned_data = super().clean()
-        # Durante la devolucion el detalle deja de estar activo; marcamos este
-        # estado antes de la validacion del modelo para evitar reglas de
-        # asignacion activa sobre activos ya entregados.
-        self.instance.activa = False
+        if cleaned_data.get("devolver") and not cleaned_data.get("estado_activo_devolucion"):
+            self.add_error("estado_activo_devolucion", "Debes indicar el estado final del activo.")
         return cleaned_data
+
+    def _post_clean(self):
+        # Este formulario no edita el detalle original; solo captura que lineas
+        # se recibiran en un evento de devolucion.
+        return None
+
+    def save_devolucion_detalle(self, devolucion):
+        if not self.cleaned_data.get("devolver"):
+            return None
+        return DevolucionDetalle.objects.create(
+            devolucion=devolucion,
+            detalle_asignacion=self.instance,
+            estado_activo_devolucion=self.cleaned_data["estado_activo_devolucion"],
+            observaciones=self.cleaned_data.get("observaciones_devolucion", ""),
+        )
 
 
 AsignacionDetalleDevolucionFormSet = inlineformset_factory(

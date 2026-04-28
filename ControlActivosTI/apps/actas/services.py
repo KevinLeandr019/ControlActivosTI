@@ -32,13 +32,17 @@ def _moneda(valor):
         return _texto(valor)
 
 
-def _nombre_archivo(asignacion, tipo):
+def _nombre_archivo(asignacion, tipo, devolucion=None):
     codigo = asignacion.codigo_asignacion or f"ASG-{asignacion.pk}"
+    if devolucion:
+        codigo = devolucion.codigo_devolucion or f"{codigo}-DEV-{devolucion.pk}"
     prefijo = "acta_recepcion" if tipo == TIPO_RECEPCION else "acta_entrega"
     return f"{prefijo}_{codigo}.docx"
 
 
-def _fecha_acta(asignacion, tipo):
+def _fecha_acta(asignacion, tipo, devolucion=None):
+    if devolucion:
+        return devolucion.fecha_devolucion
     if tipo == TIPO_RECEPCION:
         return asignacion.fecha_devolucion or asignacion.fecha_asignacion
     return asignacion.fecha_asignacion
@@ -80,7 +84,14 @@ def _estado_detalle(detalle, tipo):
     return detalle.activo.estado_activo.nombre
 
 
-def _observaciones_detalle(detalle, tipo):
+def _observaciones_detalle(detalle, tipo, devolucion_detalle=None):
+    if devolucion_detalle:
+        partes = []
+        if devolucion_detalle.observaciones:
+            partes.append(devolucion_detalle.observaciones.strip())
+        if devolucion_detalle.devolucion.observaciones:
+            partes.append(devolucion_detalle.devolucion.observaciones.strip())
+        return " | ".join([parte for parte in partes if parte]) or "-"
     if tipo == TIPO_RECEPCION:
         partes = []
         if detalle.observaciones_devolucion:
@@ -91,13 +102,17 @@ def _observaciones_detalle(detalle, tipo):
     return detalle.observaciones_acta
 
 
-def _firmas(asignacion, tipo):
+def _firmas(asignacion, tipo, devolucion=None):
     colaborador = f"{_texto(asignacion.nombre_colaborador_completo)}\n{_texto(asignacion.colaborador.cargo)}"
     responsable_entrega = _texto(
         asignacion.usuario_responsable.get_full_name() or asignacion.usuario_responsable.username
     )
     responsable_recepcion = responsable_entrega
-    if asignacion.usuario_recepcion_id:
+    if devolucion:
+        responsable_recepcion = _texto(
+            devolucion.usuario_recepcion.get_full_name() or devolucion.usuario_recepcion.username
+        )
+    elif asignacion.usuario_recepcion_id:
         responsable_recepcion = _texto(
             asignacion.usuario_recepcion.get_full_name() or asignacion.usuario_recepcion.username
         )
@@ -107,7 +122,7 @@ def _firmas(asignacion, tipo):
     return responsable_entrega, colaborador
 
 
-def construir_documento_acta(asignacion, tipo=TIPO_ENTREGA):
+def construir_documento_acta(asignacion, tipo=TIPO_ENTREGA, devolucion=None):
     config = _configuracion_acta(tipo)
     document = Document()
 
@@ -123,11 +138,17 @@ def construir_documento_acta(asignacion, tipo=TIPO_ENTREGA):
 
     subtitulo = document.add_paragraph()
     subtitulo.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    subtitulo.add_run(f"Codigo de asignacion: {_texto(asignacion.codigo_asignacion)}").bold = True
+    if devolucion:
+        subtitulo.add_run(f"Codigo de devolucion: {_texto(devolucion.codigo_devolucion)}").bold = True
+        referencia = document.add_paragraph()
+        referencia.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        referencia.add_run(f"Asignacion original: {_texto(asignacion.codigo_asignacion)}")
+    else:
+        subtitulo.add_run(f"Codigo de asignacion: {_texto(asignacion.codigo_asignacion)}").bold = True
 
     document.add_paragraph()
 
-    fecha_acta = _fecha_acta(asignacion, tipo)
+    fecha_acta = _fecha_acta(asignacion, tipo, devolucion=devolucion)
     datos = [
         ("Fecha de suscripcion", fecha_acta.strftime("%d/%m/%Y")),
         ("Colaborador", asignacion.nombre_colaborador_completo),
@@ -156,20 +177,30 @@ def construir_documento_acta(asignacion, tipo=TIPO_ENTREGA):
     for idx, texto in enumerate(encabezados):
         tabla.rows[0].cells[idx].text = texto
 
-    detalles = asignacion.detalles.select_related(
-        "activo__tipo_activo",
-        "activo__estado_activo",
-        "estado_activo_devolucion",
-    ).order_by("orden", "id")
+    if devolucion:
+        detalles = devolucion.detalles.select_related(
+            "detalle_asignacion__activo__tipo_activo",
+            "detalle_asignacion__activo__estado_activo",
+            "estado_activo_devolucion",
+            "devolucion",
+        ).order_by("detalle_asignacion__orden", "id")
+    else:
+        detalles = asignacion.detalles.select_related(
+            "activo__tipo_activo",
+            "activo__estado_activo",
+            "estado_activo_devolucion",
+        ).order_by("orden", "id")
 
-    for detalle in detalles:
+    for item in detalles:
+        detalle = item.detalle_asignacion if devolucion else item
         row = tabla.add_row().cells
         row[0].text = _texto(detalle.articulo_acta)
         row[1].text = _texto(detalle.activo.marca)
         row[2].text = _moneda(detalle.activo.valor)
-        row[3].text = _texto(_estado_detalle(detalle, tipo))
+        estado = item.estado_activo_devolucion.nombre if devolucion else _estado_detalle(detalle, tipo)
+        row[3].text = _texto(estado)
         row[4].text = detalle.caracteristicas_acta
-        row[5].text = _observaciones_detalle(detalle, tipo)
+        row[5].text = _observaciones_detalle(detalle, tipo, devolucion_detalle=item if devolucion else None)
 
     document.add_paragraph()
     document.add_paragraph(config["declaracion"])
@@ -179,7 +210,7 @@ def construir_documento_acta(asignacion, tipo=TIPO_ENTREGA):
     firmas.style = "Table Grid"
     firmas.cell(0, 0).text = config["firma_izquierda"]
     firmas.cell(0, 1).text = config["firma_derecha"]
-    firma_izquierda, firma_derecha = _firmas(asignacion, tipo)
+    firma_izquierda, firma_derecha = _firmas(asignacion, tipo, devolucion=devolucion)
     firmas.cell(1, 0).text = firma_izquierda
     firmas.cell(1, 1).text = firma_derecha
 
@@ -189,13 +220,13 @@ def construir_documento_acta(asignacion, tipo=TIPO_ENTREGA):
     return salida.getvalue()
 
 
-def generar_o_actualizar_acta(asignacion, usuario, tipo=TIPO_ENTREGA):
-    contenido = construir_documento_acta(asignacion, tipo=tipo)
-    nombre_archivo = _nombre_archivo(asignacion, tipo)
+def generar_o_actualizar_acta(asignacion, usuario, tipo=TIPO_ENTREGA, devolucion=None):
+    contenido = construir_documento_acta(asignacion, tipo=tipo, devolucion=devolucion)
+    nombre_archivo = _nombre_archivo(asignacion, tipo, devolucion=devolucion)
 
+    filtros = {"asignacion": asignacion, "tipo": tipo, "devolucion": devolucion}
     acta, _ = ActaEntrega.objects.get_or_create(
-        asignacion=asignacion,
-        tipo=tipo,
+        **filtros,
         defaults={"usuario_generador": usuario},
     )
     acta.usuario_generador = usuario
@@ -205,13 +236,20 @@ def generar_o_actualizar_acta(asignacion, usuario, tipo=TIPO_ENTREGA):
     return acta
 
 
-def generar_o_actualizar_actas_devolucion(asignacion, usuario):
+def generar_o_actualizar_actas_devolucion(devolucion, usuario):
+    asignacion = devolucion.asignacion
     acta_entrega = ActaEntrega.objects.filter(
         asignacion=asignacion,
         tipo=TIPO_ENTREGA,
+        devolucion__isnull=True,
         archivo__isnull=False,
     ).exclude(archivo="").first()
     if not acta_entrega:
         acta_entrega = generar_o_actualizar_acta(asignacion, usuario, tipo=TIPO_ENTREGA)
-    acta_recepcion = generar_o_actualizar_acta(asignacion, usuario, tipo=TIPO_RECEPCION)
+    acta_recepcion = generar_o_actualizar_acta(
+        asignacion,
+        usuario,
+        tipo=TIPO_RECEPCION,
+        devolucion=devolucion,
+    )
     return acta_entrega, acta_recepcion

@@ -6,6 +6,11 @@ from apps.activos.models import Activo
 from apps.asignaciones.models import Asignacion, AsignacionDetalle
 from apps.colaboradores.models import Colaborador
 
+ASIGNACIONES_ABIERTAS = [
+    Asignacion.EstadoAsignacion.ACTIVA,
+    Asignacion.EstadoAsignacion.PARCIAL,
+]
+
 
 class InicioView(LoginRequiredMixin, TemplateView):
     template_name = "dashboard/inicio.html"
@@ -19,7 +24,7 @@ class InicioView(LoginRequiredMixin, TemplateView):
             estado=Colaborador.EstadoColaborador.ACTIVO
         ).count()
         asignaciones_activas = Asignacion.objects.filter(
-            estado_asignacion=Asignacion.EstadoAsignacion.ACTIVA
+            estado_asignacion__in=ASIGNACIONES_ABIERTAS
         ).count()
         activos_disponibles = Activo.objects.filter(
             estado_activo__permite_asignacion=True
@@ -42,7 +47,7 @@ class InicioView(LoginRequiredMixin, TemplateView):
         activos_por_ceco = list(
             AsignacionDetalle.objects.filter(
                 activa=True,
-                asignacion__estado_asignacion=Asignacion.EstadoAsignacion.ACTIVA,
+                asignacion__estado_asignacion__in=ASIGNACIONES_ABIERTAS,
             )
             .values(
                 "asignacion__centro_costo_codigo",

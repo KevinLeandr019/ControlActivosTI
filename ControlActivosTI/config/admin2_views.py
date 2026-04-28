@@ -28,6 +28,10 @@ from apps.colaboradores.models import Colaborador
 
 
 User = get_user_model()
+ASIGNACIONES_ABIERTAS = [
+    Asignacion.EstadoAsignacion.ACTIVA,
+    Asignacion.EstadoAsignacion.PARCIAL,
+]
 
 
 def get_admin_changelist_url(model):
@@ -209,7 +213,7 @@ class Admin2BaseContextMixin:
             "reportes": {
                 "metric_label": "Asignaciones activas",
                 "metric_value": Asignacion.objects.filter(
-                    estado_asignacion=Asignacion.EstadoAsignacion.ACTIVA
+                    estado_asignacion__in=ASIGNACIONES_ABIERTAS
                 ).count(),
             },
             "inventario": {
@@ -250,7 +254,7 @@ class Admin2HomeView(Admin2AccessMixin, Admin2BaseContextMixin, TemplateView):
         usuarios_staff = User.objects.filter(is_staff=True).count()
         activos_registrados = Activo.objects.count()
         asignaciones_activas = Asignacion.objects.filter(
-            estado_asignacion=Asignacion.EstadoAsignacion.ACTIVA
+            estado_asignacion__in=ASIGNACIONES_ABIERTAS
         ).count()
 
         context["resumen"] = [
@@ -637,7 +641,7 @@ class Admin2ModuleView(Admin2AccessMixin, Admin2BaseContextMixin, TemplateView):
                 {"label": "Staff", "value": User.objects.filter(is_staff=True).count()},
                 {"label": "Superusuarios", "value": User.objects.filter(is_superuser=True).count()},
                 {"label": "Usuarios activos", "value": User.objects.filter(is_active=True).count()},
-                {"label": "Asignaciones abiertas", "value": Asignacion.objects.filter(estado_asignacion=Asignacion.EstadoAsignacion.ACTIVA).count()},
+                {"label": "Asignaciones abiertas", "value": Asignacion.objects.filter(estado_asignacion__in=ASIGNACIONES_ABIERTAS).count()},
             ],
             "module_actions": [
                 {"label": "Gestionar grupos", "url": reverse("admin:auth_group_changelist"), "kind": "primary"},
@@ -806,7 +810,7 @@ class Admin2ModuleView(Admin2AccessMixin, Admin2BaseContextMixin, TemplateView):
         return {
             "stats": [
                 {"label": "Eventos de activo", "value": EventoActivo.objects.count()},
-                {"label": "Asignaciones activas", "value": Asignacion.objects.filter(estado_asignacion=Asignacion.EstadoAsignacion.ACTIVA).count()},
+                {"label": "Asignaciones activas", "value": Asignacion.objects.filter(estado_asignacion__in=ASIGNACIONES_ABIERTAS).count()},
                 {"label": "Asignaciones cerradas", "value": Asignacion.objects.filter(estado_asignacion=Asignacion.EstadoAsignacion.CERRADA).count()},
                 {"label": "Activos con eventos", "value": EventoActivo.objects.values("activo_id").distinct().count()},
             ],

@@ -10,6 +10,11 @@ from apps.catalogos.models import Area, Empresa, Ubicacion
 
 from .models import Colaborador
 
+ASIGNACIONES_ABIERTAS = [
+    Asignacion.EstadoAsignacion.ACTIVA,
+    Asignacion.EstadoAsignacion.PARCIAL,
+]
+
 
 class ColaboradorListView(LoginRequiredMixin, ListView):
     model = Colaborador
@@ -57,7 +62,7 @@ class ColaboradorListView(LoginRequiredMixin, ListView):
                 activos_asignados_count=Count(
                     "asignaciones__detalles",
                     filter=Q(
-                        asignaciones__estado_asignacion=Asignacion.EstadoAsignacion.ACTIVA,
+                        asignaciones__estado_asignacion__in=ASIGNACIONES_ABIERTAS,
                         asignaciones__detalles__activa=True,
                     ),
                     distinct=True,
@@ -167,7 +172,7 @@ class ColaboradorDetailView(LoginRequiredMixin, DetailView):
             detalles = list(asignacion.detalles.all())
             historial_detalles.extend(detalles)
 
-            if asignacion.estado_asignacion == Asignacion.EstadoAsignacion.ACTIVA:
+            if asignacion.estado_asignacion in ASIGNACIONES_ABIERTAS:
                 detalles_activos_actuales.extend(
                     [detalle for detalle in detalles if detalle.activa]
                 )

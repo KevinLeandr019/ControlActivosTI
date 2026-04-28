@@ -11,10 +11,10 @@ from apps.actas.services import generar_o_actualizar_acta, generar_o_actualizar_
 
 from .forms import (
     AsignacionCreateForm,
-    AsignacionDevolucionForm,
     AsignacionDetalleDevolucionFormSet,
+    DevolucionForm,
 )
-from .models import Asignacion
+from .models import Asignacion, Devolucion
 
 
 class AsignacionListView(LoginRequiredMixin, ListView):
@@ -24,6 +24,7 @@ class AsignacionListView(LoginRequiredMixin, ListView):
     paginate_by = 10
     ORDENES_FECHA = {
         "recientes": ("-fecha_asignacion", "-id"),
+        "actividad": ("-updated_at", "-id"),
         "antiguas": ("fecha_asignacion", "id"),
     }
 
@@ -37,6 +38,10 @@ class AsignacionListView(LoginRequiredMixin, ListView):
             )
             .prefetch_related(
                 "actas",
+                "devoluciones__actas",
+                "devoluciones__usuario_recepcion",
+                "devoluciones__detalles__detalle_asignacion__activo__tipo_activo",
+                "devoluciones__detalles__estado_activo_devolucion",
                 "detalles__activo__tipo_activo",
                 "detalles__activo__estado_activo",
             )
@@ -55,6 +60,7 @@ class AsignacionListView(LoginRequiredMixin, ListView):
         estado = self.request.GET.get("estado", "").strip()
         if estado in {
             Asignacion.EstadoAsignacion.ACTIVA,
+            Asignacion.EstadoAsignacion.PARCIAL,
             Asignacion.EstadoAsignacion.CERRADA,
         }:
             queryset = queryset.filter(estado_asignacion=estado)
@@ -87,6 +93,8 @@ class AsignacionListView(LoginRequiredMixin, ListView):
         context["fecha_hasta"] = self.request.GET.get("fecha_hasta", "").strip()
         context["orden_seleccionado"] = self.request.GET.get("orden", "recientes").strip()
         return context
+
+
 class AsignacionDetailView(LoginRequiredMixin, DetailView):
     model = Asignacion
     template_name = "asignaciones/detalle.html"
@@ -106,9 +114,37 @@ class AsignacionDetailView(LoginRequiredMixin, DetailView):
             )
             .prefetch_related(
                 "actas",
+                "devoluciones__actas",
+                "devoluciones__usuario_recepcion",
+                "devoluciones__detalles__detalle_asignacion__activo__tipo_activo",
+                "devoluciones__detalles__estado_activo_devolucion",
                 "detalles__activo__tipo_activo",
                 "detalles__activo__estado_activo",
                 "detalles__activo__fotos",
+            )
+        )
+
+
+class DevolucionDetailView(LoginRequiredMixin, DetailView):
+    model = Devolucion
+    template_name = "asignaciones/devolucion_detalle.html"
+    context_object_name = "devolucion"
+
+    def get_queryset(self):
+        return (
+            Devolucion.objects.select_related(
+                "asignacion",
+                "asignacion__colaborador",
+                "asignacion__colaborador__empresa",
+                "asignacion__colaborador__area",
+                "asignacion__colaborador__cargo",
+                "usuario_recepcion",
+            )
+            .prefetch_related(
+                "actas",
+                "detalles__detalle_asignacion__activo__tipo_activo",
+                "detalles__detalle_asignacion__activo__estado_activo",
+                "detalles__estado_activo_devolucion",
             )
         )
 
@@ -148,7 +184,7 @@ class AsignacionCreateView(LoginRequiredMixin, CreateView):
 
 class AsignacionDevolucionView(LoginRequiredMixin, UpdateView):
     model = Asignacion
-    form_class = AsignacionDevolucionForm
+    form_class = DevolucionForm
     template_name = "asignaciones/devolucion.html"
     success_url = reverse_lazy("asignaciones:lista")
 
@@ -162,20 +198,34 @@ class AsignacionDevolucionView(LoginRequiredMixin, UpdateView):
                 "detalles__activo__tipo_activo",
                 "detalles__activo__estado_activo",
             )
-            .filter(estado_asignacion=Asignacion.EstadoAsignacion.ACTIVA)
+            .filter(
+                estado_asignacion__in=[
+                    Asignacion.EstadoAsignacion.ACTIVA,
+                    Asignacion.EstadoAsignacion.PARCIAL,
+                ]
+            )
         )
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.pop("instance", None)
+        kwargs["asignacion"] = self.object
+        return kwargs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        detalles_pendientes = self.object.detalles.filter(activa=True)
         if self.request.method == "POST":
             context["formset"] = AsignacionDetalleDevolucionFormSet(
                 self.request.POST,
                 instance=self.object,
+                queryset=detalles_pendientes,
                 prefix="detalles",
             )
         else:
             context["formset"] = AsignacionDetalleDevolucionFormSet(
                 instance=self.object,
+                queryset=detalles_pendientes,
                 prefix="detalles",
             )
         return context
@@ -183,38 +233,42 @@ class AsignacionDevolucionView(LoginRequiredMixin, UpdateView):
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         form = self.get_form()
-        form.instance.estado_asignacion = Asignacion.EstadoAsignacion.CERRADA
-        form.instance.usuario_recepcion = request.user
         formset = AsignacionDetalleDevolucionFormSet(
             request.POST,
             instance=self.object,
+            queryset=self.object.detalles.filter(activa=True),
             prefix="detalles",
         )
 
         if form.is_valid() and formset.is_valid():
+            seleccionados = [
+                detalle_form
+                for detalle_form in formset.forms
+                if detalle_form.cleaned_data.get("devolver")
+            ]
+            if not seleccionados:
+                form.add_error(None, "Selecciona al menos un activo para registrar la devolucion.")
+                return self.forms_invalid(form, formset)
             return self.forms_valid(form, formset)
         return self.forms_invalid(form, formset)
 
     def forms_valid(self, form, formset):
         with transaction.atomic():
-            asignacion = form.save(commit=False)
-            asignacion.estado_asignacion = Asignacion.EstadoAsignacion.CERRADA
-            asignacion.usuario_recepcion = self.request.user
-            asignacion.save()
+            devolucion = form.save(commit=False)
+            devolucion.asignacion = self.object
+            devolucion.usuario_recepcion = self.request.user
+            devolucion.save()
 
-            if not asignacion.actas.filter(tipo="ENTREGA").exclude(archivo="").exists():
-                generar_o_actualizar_acta(asignacion, self.request.user)
+            if not self.object.actas.filter(tipo="ENTREGA").exclude(archivo="").exists():
+                generar_o_actualizar_acta(self.object, self.request.user)
 
             for detalle_form in formset.forms:
-                detalle = detalle_form.save(commit=False)
-                detalle.asignacion = asignacion
-                detalle.activa = False
-                detalle.save()
+                detalle_form.save_devolucion_detalle(devolucion)
 
-            generar_o_actualizar_actas_devolucion(asignacion, self.request.user)
+            generar_o_actualizar_actas_devolucion(devolucion, self.request.user)
 
         messages.success(self.request, "La devolución fue registrada correctamente.")
-        return HttpResponseRedirect(self.get_success_url())
+        return HttpResponseRedirect(reverse("asignaciones:devolucion_detalle", args=[devolucion.pk]))
 
     def forms_invalid(self, form, formset):
         return self.render_to_response(self.get_context_data(form=form, formset=formset))

@@ -203,7 +203,7 @@
                                     <div class="mt-1 text-xs text-slate-500">{{ asignacion.resumen_activos }}</div>
                                 </td>
                                 <td class="px-4 py-3">
-                                    <span class="rounded-lg px-3 py-1 text-xs font-semibold {% if asignacion.estado_asignacion == 'ACTIVA' %}border border-cyan-200 bg-cyan-50 text-cyan-700{% else %}border border-emerald-200 bg-emerald-50 text-emerald-700{% endif %}">
+                                    <span class="rounded-lg px-3 py-1 text-xs font-semibold {% if asignacion.estado_asignacion == 'ACTIVA' %}border border-cyan-200 bg-cyan-50 text-cyan-700{% elif asignacion.estado_asignacion == 'PARCIAL' %}border border-amber-200 bg-amber-50 text-amber-700{% else %}border border-emerald-200 bg-emerald-50 text-emerald-700{% endif %}">
                                         {{ asignacion.get_estado_asignacion_display }}
                                     </span>
                                 </td>

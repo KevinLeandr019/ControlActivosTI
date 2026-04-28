@@ -5,6 +5,8 @@ from django.db import models
 def ruta_acta_entrega(instance, filename):
     codigo = instance.asignacion.codigo_asignacion if instance.asignacion_id else "sin-asignacion"
     tipo = (instance.tipo or "ENTREGA").lower()
+    if instance.devolucion_id:
+        return f"actas/{codigo}/{tipo}/{instance.devolucion.codigo_devolucion}/{filename}"
     return f"actas/{codigo}/{tipo}/{filename}"
 
 
@@ -17,6 +19,13 @@ class ActaEntrega(models.Model):
         "asignaciones.Asignacion",
         on_delete=models.CASCADE,
         related_name="actas",
+    )
+    devolucion = models.ForeignKey(
+        "asignaciones.Devolucion",
+        on_delete=models.CASCADE,
+        related_name="actas",
+        null=True,
+        blank=True,
     )
     tipo = models.CharField(
         max_length=10,
@@ -42,10 +51,19 @@ class ActaEntrega(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["asignacion", "tipo"],
-                name="unique_acta_por_asignacion_tipo",
+                condition=models.Q(tipo="ENTREGA", devolucion__isnull=True),
+                name="unique_acta_entrega_por_asignacion",
+            ),
+            models.UniqueConstraint(
+                fields=["devolucion", "tipo"],
+                condition=models.Q(tipo="RECEPCION", devolucion__isnull=False),
+                name="unique_acta_recepcion_por_devolucion",
             ),
         ]
 
     def __str__(self):
-        codigo = self.asignacion.codigo_asignacion if self.asignacion_id else "SIN-CODIGO"
+        if self.devolucion_id:
+            codigo = self.devolucion.codigo_devolucion
+        else:
+            codigo = self.asignacion.codigo_asignacion if self.asignacion_id else "SIN-CODIGO"
         return f"Acta {self.get_tipo_display()} - {codigo}"

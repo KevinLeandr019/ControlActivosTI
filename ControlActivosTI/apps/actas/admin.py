@@ -7,6 +7,7 @@ from .models import ActaEntrega
 class ActaEntregaAdmin(admin.ModelAdmin):
     list_display = (
         "asignacion",
+        "devolucion",
         "tipo",
         "nombre_archivo",
         "version_plantilla",
@@ -22,4 +23,4 @@ class ActaEntregaAdmin(admin.ModelAdmin):
         "nombre_archivo",
     )
     list_filter = ("tipo", "version_plantilla", "fecha_generacion")
-    list_select_related = ("asignacion", "usuario_generador")
+    list_select_related = ("asignacion", "devolucion", "usuario_generador")

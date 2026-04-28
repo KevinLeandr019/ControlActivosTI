@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.actas.models import ActaEntrega
 from apps.activos.models import Activo
@@ -11,7 +12,7 @@ from apps.catalogos.models import Area, Cargo, CentroCosto, Empresa, EstadoActiv
 from apps.colaboradores.models import Colaborador
 
 from apps.asignaciones.forms import AsignacionCreateForm
-from apps.asignaciones.models import Asignacion, AsignacionDetalle
+from apps.asignaciones.models import Asignacion, AsignacionDetalle, Devolucion
 
 
 class AsignacionCreateFormTests(TestCase):
@@ -122,13 +123,14 @@ class AsignacionCreateFormTests(TestCase):
 
         payload = {
             "fecha_devolucion": "2026-04-21",
-            "observaciones_devolucion": "Equipo recibido",
+            "observaciones": "Equipo recibido",
             "detalles-TOTAL_FORMS": str(formset.total_form_count()),
             "detalles-INITIAL_FORMS": str(formset.initial_form_count()),
             "detalles-MIN_NUM_FORMS": "0",
             "detalles-MAX_NUM_FORMS": "1000",
             "detalles-0-id": str(detalle.pk),
             "detalles-0-asignacion": str(asignacion.pk),
+            "detalles-0-devolver": "on",
             "detalles-0-estado_activo_devolucion": str(self.estado_no_disponible.pk),
             "detalles-0-observaciones_devolucion": "Sin novedades",
         }
@@ -148,6 +150,9 @@ class AsignacionCreateFormTests(TestCase):
         self.assertFalse(detalle.activa)
         self.assertEqual(detalle.estado_activo_devolucion, self.estado_no_disponible)
         self.assertEqual(self.activo_disponible.estado_activo, self.estado_no_disponible)
+        devolucion = Devolucion.objects.get(asignacion=asignacion)
+        self.assertEqual(devolucion.codigo_devolucion, f"DEV-{devolucion.pk:05d}")
+        self.assertEqual(post_response["Location"], reverse("asignaciones:devolucion_detalle", args=[devolucion.pk]))
         self.assertTrue(
             ActaEntrega.objects.filter(
                 asignacion=asignacion,
@@ -160,6 +165,96 @@ class AsignacionCreateFormTests(TestCase):
                 tipo=ActaEntrega.TipoActa.RECEPCION,
             ).exists()
         )
+
+    def test_devolucion_view_allows_partial_return_and_keeps_assignment_open(self):
+        activo_teclado = Activo.objects.create(
+            tipo_activo=self.tipo_activo,
+            marca="Logitech",
+            modelo="K120",
+            serie="KEY001",
+            estado_activo=self.estado_disponible,
+        )
+        activo_mouse = Activo.objects.create(
+            tipo_activo=self.tipo_activo,
+            marca="Logitech",
+            modelo="M185",
+            serie="MOU001",
+            estado_activo=self.estado_disponible,
+        )
+        asignacion = Asignacion.objects.create(
+            colaborador=self.colaborador,
+            fecha_asignacion=date(2026, 4, 20),
+            usuario_responsable=self.user,
+        )
+        detalle_pc = AsignacionDetalle.objects.create(
+            asignacion=asignacion,
+            activo=self.activo_disponible,
+            orden=1,
+        )
+        detalle_teclado = AsignacionDetalle.objects.create(
+            asignacion=asignacion,
+            activo=activo_teclado,
+            orden=2,
+        )
+        detalle_mouse = AsignacionDetalle.objects.create(
+            asignacion=asignacion,
+            activo=activo_mouse,
+            orden=3,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("asignaciones:devolver", args=[asignacion.pk]))
+        formset = response.context_data["formset"]
+
+        payload = {
+            "fecha_devolucion": "2026-04-21",
+            "observaciones": "Devuelve solo mouse",
+            "detalles-TOTAL_FORMS": str(formset.total_form_count()),
+            "detalles-INITIAL_FORMS": str(formset.initial_form_count()),
+            "detalles-MIN_NUM_FORMS": "0",
+            "detalles-MAX_NUM_FORMS": "1000",
+            "detalles-0-id": str(detalle_pc.pk),
+            "detalles-0-asignacion": str(asignacion.pk),
+            "detalles-0-estado_activo_devolucion": "",
+            "detalles-0-observaciones_devolucion": "",
+            "detalles-1-id": str(detalle_teclado.pk),
+            "detalles-1-asignacion": str(asignacion.pk),
+            "detalles-1-estado_activo_devolucion": "",
+            "detalles-1-observaciones_devolucion": "",
+            "detalles-2-id": str(detalle_mouse.pk),
+            "detalles-2-asignacion": str(asignacion.pk),
+            "detalles-2-devolver": "on",
+            "detalles-2-estado_activo_devolucion": str(self.estado_no_disponible.pk),
+            "detalles-2-observaciones_devolucion": "Mouse recibido",
+        }
+
+        post_response = self.client.post(
+            reverse("asignaciones:devolver", args=[asignacion.pk]),
+            payload,
+        )
+
+        self.assertEqual(post_response.status_code, 302)
+
+        asignacion.refresh_from_db()
+        detalle_pc.refresh_from_db()
+        detalle_teclado.refresh_from_db()
+        detalle_mouse.refresh_from_db()
+
+        self.assertEqual(asignacion.estado_asignacion, Asignacion.EstadoAsignacion.PARCIAL)
+        self.assertTrue(detalle_pc.activa)
+        self.assertTrue(detalle_teclado.activa)
+        self.assertFalse(detalle_mouse.activa)
+        self.assertEqual(asignacion.devoluciones.count(), 1)
+        devolucion = asignacion.devoluciones.first()
+        self.assertEqual(devolucion.codigo_devolucion, f"DEV-{devolucion.pk:05d}")
+        self.assertEqual(devolucion.detalles.count(), 1)
+
+        detalle_response = self.client.get(reverse("asignaciones:devolucion_detalle", args=[devolucion.pk]))
+
+        self.assertEqual(detalle_response.status_code, 200)
+        self.assertContains(detalle_response, devolucion.codigo_devolucion)
+        self.assertContains(detalle_response, detalle_mouse.activo.codigo)
+        self.assertNotContains(detalle_response, "Acta entrega")
 
     def test_devolucion_view_allows_historical_ceco_disabled_after_assignment(self):
         asignacion = Asignacion.objects.create(
@@ -182,13 +277,14 @@ class AsignacionCreateFormTests(TestCase):
 
         payload = {
             "fecha_devolucion": "2026-04-21",
-            "observaciones_devolucion": "Equipo recibido",
+            "observaciones": "Equipo recibido",
             "detalles-TOTAL_FORMS": str(formset.total_form_count()),
             "detalles-INITIAL_FORMS": str(formset.initial_form_count()),
             "detalles-MIN_NUM_FORMS": "0",
             "detalles-MAX_NUM_FORMS": "1000",
             "detalles-0-id": str(detalle.pk),
             "detalles-0-asignacion": str(asignacion.pk),
+            "detalles-0-devolver": "on",
             "detalles-0-estado_activo_devolucion": str(self.estado_no_disponible.pk),
             "detalles-0-observaciones_devolucion": "Sin novedades",
         }
@@ -365,3 +461,16 @@ class AsignacionListViewTests(TestCase):
         asignaciones = list(response.context["asignaciones"])
         self.assertEqual(asignaciones, [self.asignacion_cerrada, self.asignacion_activa])
         self.assertContains(response, "Mas antiguas primero")
+
+    def test_list_view_orders_by_recent_activity_when_requested(self):
+        self.client.force_login(self.user)
+
+        Asignacion.objects.filter(pk=self.asignacion_activa.pk).update(updated_at=timezone.now())
+
+        response = self.client.get(reverse("asignaciones:lista"), {"orden": "actividad"})
+
+        self.assertEqual(response.status_code, 200)
+        asignaciones = list(response.context["asignaciones"])
+        self.assertEqual(asignaciones[0], self.asignacion_activa)
+        self.assertEqual(response.context["orden_seleccionado"], "actividad")
+        self.assertContains(response, "Actividad mas reciente")
