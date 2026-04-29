@@ -239,5 +239,60 @@
             </tbody>
         </table>
     </div>
+
+    {% if is_paginated %}
+        <div class="border-t border-slate-200 bg-slate-50 px-4 py-4 sm:px-6">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <p class="text-sm text-slate-600">
+                    Mostrando {{ page_obj.start_index }} a {{ page_obj.end_index }} de {{ paginator.count }} colaboradores
+                </p>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    {% if page_obj.has_previous %}
+                        <a
+                            href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}"
+                            class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                        >
+                            Anterior
+                        </a>
+                    {% else %}
+                        <span class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-400">
+                            Anterior
+                        </span>
+                    {% endif %}
+
+                    {% for numero in page_numbers %}
+                        {% if numero == page_obj.paginator.ELLIPSIS %}
+                            <span class="px-2 text-sm text-slate-500">{{ numero }}</span>
+                        {% elif numero == page_obj.number %}
+                            <span class="rounded-xl bg-cyan-600 px-3 py-2 text-sm font-semibold text-white">
+                                {{ numero }}
+                            </span>
+                        {% else %}
+                            <a
+                                href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ numero }}"
+                                class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                            >
+                                {{ numero }}
+                            </a>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <a
+                            href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}"
+                            class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                        >
+                            Siguiente
+                        </a>
+                    {% else %}
+                        <span class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-400">
+                            Siguiente
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}

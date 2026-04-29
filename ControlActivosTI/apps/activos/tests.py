@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -5,7 +6,9 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 
-from apps.catalogos.models import EstadoActivo, TipoActivo, TipoEventoActivo
+from apps.asignaciones.models import Asignacion, AsignacionDetalle
+from apps.catalogos.models import Area, Cargo, CentroCosto, Empresa, EstadoActivo, TipoActivo, TipoEventoActivo, Ubicacion
+from apps.colaboradores.models import Colaborador
 
 from apps.activos.admin import ActivoAdminForm, EventoActivoAdminForm, FotoActivoInlineForm
 from apps.activos.models import Activo, EventoActivo, FotoActivo
@@ -318,3 +321,81 @@ class ActivoListViewTests(TestCase):
         self.assertContains(response, 'text-[11px] font-semibold uppercase')
         self.assertContains(response, "data-scroll-to-results")
         self.assertContains(response, 'id="resultados"')
+
+
+class ActivoDetailViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="detalle", password="testpass123")
+        self.estado = EstadoActivo.objects.create(nombre="Disponible", permite_asignacion=True)
+        self.estado_asignado = EstadoActivo.objects.create(nombre="Asignado", permite_asignacion=False)
+        self.estado_devuelto = EstadoActivo.objects.create(nombre="Bodega", permite_asignacion=True)
+        self.tipo_laptop = TipoActivo.objects.create(nombre="Laptop")
+        self.area = Area.objects.create(nombre="TI")
+        self.cargo = Cargo.objects.create(nombre="Analista")
+        self.empresa = Empresa.objects.create(nombre="Acme")
+        self.ubicacion = Ubicacion.objects.create(nombre="Matriz")
+        self.centro_costo = CentroCosto.objects.create(
+            codigo="TI001",
+            nombre="Tecnologia",
+            empresa=self.empresa,
+        )
+        self.colaborador = Colaborador.objects.create(
+            nombres="Ana",
+            apellidos="Perez",
+            cedula="0102030405",
+            correo_corporativo="ana@example.com",
+            centro_costo=self.centro_costo,
+            empresa=self.empresa,
+            cargo=self.cargo,
+            area=self.area,
+            ubicacion=self.ubicacion,
+            fecha_ingreso=date(2024, 1, 10),
+        )
+        self.activo = Activo.objects.create(
+            tipo_activo=self.tipo_laptop,
+            marca="Dell",
+            modelo="Latitude",
+            serie="LAP-001",
+            estado_activo=self.estado,
+        )
+
+        for indice in range(1, 6):
+            asignacion = Asignacion.objects.create(
+                colaborador=self.colaborador,
+                fecha_asignacion=date(2026, 4, indice),
+                fecha_devolucion=date(2026, 4, indice + 1),
+                usuario_responsable=self.user,
+                usuario_recepcion=self.user,
+                estado_asignacion=Asignacion.EstadoAsignacion.CERRADA,
+            )
+            AsignacionDetalle.objects.create(
+                asignacion=asignacion,
+                activo=self.activo,
+                orden=indice,
+                activa=False,
+                estado_activo_devolucion=self.estado_devuelto,
+            )
+
+        asignacion_activa = Asignacion.objects.create(
+            colaborador=self.colaborador,
+            fecha_asignacion=date(2026, 4, 6),
+            usuario_responsable=self.user,
+        )
+        AsignacionDetalle.objects.create(
+            asignacion=asignacion_activa,
+            activo=self.activo,
+            orden=6,
+        )
+
+    def test_detail_view_shows_last_five_assignments_and_keeps_full_history_expandable(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("activos:detalle", args=[self.activo.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["total_historial_asignaciones"], 6)
+        self.assertEqual(len(response.context["historial_asignaciones"]), 5)
+        self.assertEqual(len(response.context["historial_asignaciones_completo"]), 1)
+        self.assertContains(response, "Mostrando las 5 asignaciones mÃ¡s recientes")
+        self.assertContains(response, "Ver historial completo")
+        self.assertContains(response, "LAP-001")

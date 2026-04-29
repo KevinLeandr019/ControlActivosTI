@@ -44,6 +44,19 @@ class ColaboradorListViewTests(TestCase):
             fecha_ingreso=date(2024, 2, 15),
         )
 
+    def _crear_colaborador_adicional(self, indice):
+        return Colaborador.objects.create(
+            nombres=f"Nombre{indice}",
+            apellidos="Extra",
+            cedula=f"9{indice:09d}",
+            correo_corporativo=f"extra{indice}@example.com",
+            empresa=self.empresa_a,
+            cargo=self.cargo,
+            area=self.area,
+            ubicacion=self.ubicacion,
+            fecha_ingreso=date(2024, 3, 1),
+        )
+
     def test_list_view_shows_company_separators(self):
         self.client.force_login(self.user)
 
@@ -67,3 +80,28 @@ class ColaboradorListViewTests(TestCase):
 
         self.assertEqual(response.context["total_columnas_tabla"], 2)
         self.assertContains(response, 'colspan="2"')
+
+    def test_list_view_paginates_at_ten_items(self):
+        self.client.force_login(self.user)
+
+        for indice in range(1, 10):
+            self._crear_colaborador_adicional(indice)
+
+        response = self.client.get(reverse("colaboradores:lista"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["is_paginated"])
+        self.assertEqual(response.context["paginator"].per_page, 10)
+        self.assertEqual(len(list(response.context["colaboradores"])), 10)
+        self.assertEqual(response.context["page_obj"].number, 1)
+        self.assertTrue(response.context["page_obj"].has_next())
+        self.assertContains(response, "Mostrando 1 a 10 de 11 colaboradores")
+        self.assertEqual(response.context["query_string"], "")
+
+        second_page = self.client.get(reverse("colaboradores:lista"), {"page": 2})
+
+        self.assertEqual(second_page.status_code, 200)
+        self.assertEqual(len(list(second_page.context["colaboradores"])), 1)
+        self.assertEqual(second_page.context["page_obj"].number, 2)
+        self.assertFalse(second_page.context["page_obj"].has_next())
+        self.assertContains(second_page, "Mostrando 11 a 11 de 11 colaboradores")

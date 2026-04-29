@@ -216,7 +216,19 @@
 
         <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div class="border-b border-slate-200 px-6 py-4">
-                <h3 class="text-lg font-semibold text-slate-900">Historial de asignaciones</h3>
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h3 class="text-lg font-semibold text-slate-900">Historial de asignaciones</h3>
+                        <p class="mt-1 text-sm text-slate-500">
+                            Mostrando las 5 asignaciones mÃ¡s recientes{% if total_historial_asignaciones > 5 %} de {{ total_historial_asignaciones }} en total{% endif %}.
+                        </p>
+                    </div>
+                    {% if total_historial_asignaciones > 5 %}
+                        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                            +{{ total_historial_asignaciones|add:"-5" }} mÃ¡s en historial completo
+                        </span>
+                    {% endif %}
+                </div>
             </div>
 
             {% if historial_asignaciones %}
@@ -251,6 +263,47 @@
                         </tbody>
                     </table>
                 </div>
+
+                {% if historial_asignaciones_completo %}
+                    <details class="border-t border-slate-200">
+                        <summary class="cursor-pointer px-6 py-4 text-sm font-semibold text-cyan-700 hover:bg-slate-50">
+                            Ver historial completo
+                        </summary>
+                        <div class="border-t border-slate-200">
+                            <div class="max-h-[24rem] overflow-y-auto">
+                                <table class="min-w-full divide-y divide-slate-200 text-sm">
+                                    <thead class="sticky top-0 bg-slate-50 text-left text-slate-600">
+                                        <tr>
+                                            <th class="px-4 py-3 font-semibold">Asignacion</th>
+                                            <th class="px-4 py-3 font-semibold">Colaborador</th>
+                                            <th class="px-4 py-3 font-semibold">Fecha</th>
+                                            <th class="px-4 py-3 font-semibold">Estado</th>
+                                            <th class="px-4 py-3 font-semibold">Devolucion</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100 bg-white">
+                                        {% for detalle in historial_asignaciones_completo %}
+                                            <tr class="align-top text-slate-700">
+                                                <td class="px-4 py-4 font-semibold text-slate-900">{{ detalle.asignacion.codigo_asignacion }}</td>
+                                                <td class="px-4 py-4">{{ detalle.asignacion.colaborador }}</td>
+                                                <td class="px-4 py-4">{{ detalle.asignacion.fecha_asignacion }}</td>
+                                                <td class="px-4 py-4">{{ detalle.asignacion.estado_asignacion }}</td>
+                                                <td class="px-4 py-4">
+                                                    {% if detalle.asignacion.fecha_devolucion %}
+                                                        {{ detalle.asignacion.fecha_devolucion }}
+                                                        <span class="mt-1 block text-xs text-slate-500">{{ detalle.estado_activo_devolucion|default:"Sin estado final" }}</span>
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </details>
+                {% endif %}
             {% else %}
                 <div class="p-6">
                     <div class="rounded-xl border border-dashed border-slate-300 px-6 py-10 text-center text-sm text-slate-500">

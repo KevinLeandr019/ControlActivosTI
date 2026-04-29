@@ -121,6 +121,15 @@ class ColaboradorListView(LoginRequiredMixin, ListView):
         context["empresas"] = Empresa.objects.filter(activo=True).order_by("nombre")
         context["areas"] = Area.objects.filter(activo=True).order_by("nombre")
         context["ubicaciones"] = Ubicacion.objects.filter(activo=True).order_by("nombre")
+        query_params = self.request.GET.copy()
+        query_params.pop("page", None)
+        context["query_string"] = query_params.urlencode()
+        if context.get("is_paginated"):
+            context["page_numbers"] = context["paginator"].get_elided_page_range(
+                number=context["page_obj"].number,
+                on_each_side=1,
+                on_ends=1,
+            )
         return context
 
 

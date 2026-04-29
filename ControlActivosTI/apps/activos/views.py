@@ -12,7 +12,6 @@ class ActivoListView(LoginRequiredMixin, ListView):
     model = Activo
     template_name = "activos/lista.html"
     context_object_name = "activos"
-    paginate_by = 10
 
     COLUMNAS_DISPONIBLES = [
         ("codigo", "Código"),
@@ -124,6 +123,8 @@ class ActivoDetailView(LoginRequiredMixin, DetailView):
         activo = self.object
 
         detalles_asignacion = list(activo.detalles_asignacion.all())
+        historial_reciente = detalles_asignacion[:5]
+        historial_completo = detalles_asignacion[5:]
         detalle_activo = next(
             (detalle for detalle in detalles_asignacion if detalle.activa),
             None,
@@ -131,6 +132,8 @@ class ActivoDetailView(LoginRequiredMixin, DetailView):
 
         context["asignacion_activa"] = detalle_activo.asignacion if detalle_activo else None
         context["detalle_asignacion_activa"] = detalle_activo
-        context["historial_asignaciones"] = detalles_asignacion
+        context["historial_asignaciones"] = historial_reciente
+        context["historial_asignaciones_completo"] = historial_completo
+        context["total_historial_asignaciones"] = len(detalles_asignacion)
         context["historial_eventos"] = list(activo.eventos.all())
         return context
