@@ -108,6 +108,7 @@ class ActaEntregaExcelTests(TestCase):
 
         acta, workbook = self.cargar_workbook_generado()
         ws = workbook.active
+        plantilla = load_workbook(next(Path("templates/actas").glob("*.xlsx"))).active
 
         self.assertEqual(acta.tipo, ActaEntrega.TipoActa.ENTREGA)
         self.assertTrue(acta.nombre_archivo.endswith(".xlsx"))
@@ -115,6 +116,8 @@ class ActaEntregaExcelTests(TestCase):
         self.assertEqual(ws["E10"].value, "Ana Perez")
         self.assertEqual(ws["E11"].value, "0123456789")
         self.assertEqual(ws["I10"].value, "Analista de soporte")
+        self.assertEqual(ws["D62"].value, "Ana Perez")
+        self.assertEqual(ws["D63"].value, "Analista de soporte")
         self.assertIsNone(ws["B1"].value)
         self.assertEqual(ws["B14"].value, "Laptop")
         self.assertEqual(ws["D14"].value, "Dell")
@@ -129,6 +132,11 @@ class ActaEntregaExcelTests(TestCase):
         xml = self.cargar_xml_hoja_generada(acta)
         self.assertNotIn(b"<t> </t>", xml)
         self.assertIn(b'<t xml:space="preserve"> </t>', xml)
+        for fila in range(38, 54):
+            self.assertEqual(
+                ws.row_dimensions[fila].height,
+                plantilla.row_dimensions[fila].height,
+            )
 
     def test_expands_asset_rows_when_assignment_has_more_than_template_capacity(self):
         for orden in range(1, 8):
@@ -139,4 +147,9 @@ class ActaEntregaExcelTests(TestCase):
 
         self.assertEqual(ws["B20"].value, "Laptop")
         self.assertIn("SERIE007", ws["H20"].value)
-        self.assertIn("CREDENCIALES DE ACCESO", str(ws["B21"].value))
+        credenciales_fila = next(
+            fila
+            for fila in range(17, ws.max_row + 1)
+            if "CREDENCIALES DE ACCESO" in str(ws.cell(fila, 2).value)
+        )
+        self.assertGreater(credenciales_fila, 20)
