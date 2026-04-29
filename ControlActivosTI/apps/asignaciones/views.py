@@ -92,6 +92,15 @@ class AsignacionListView(LoginRequiredMixin, ListView):
         context["fecha_desde"] = self.request.GET.get("fecha_desde", "").strip()
         context["fecha_hasta"] = self.request.GET.get("fecha_hasta", "").strip()
         context["orden_seleccionado"] = self.request.GET.get("orden", "recientes").strip()
+        query_params = self.request.GET.copy()
+        query_params.pop("page", None)
+        context["query_string"] = query_params.urlencode()
+        if context.get("is_paginated"):
+            context["page_numbers"] = context["paginator"].get_elided_page_range(
+                number=context["page_obj"].number,
+                on_each_side=1,
+                on_ends=1,
+            )
         return context
 
 

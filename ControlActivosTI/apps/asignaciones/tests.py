@@ -401,6 +401,37 @@ class AsignacionListViewTests(TestCase):
             usuario_generador=self.user,
         )
 
+    def _crear_asignacion_adicional(self, indice, fecha_asignacion):
+        colaborador = Colaborador.objects.create(
+            nombres=f"Colaborador{indice}",
+            apellidos="Extra",
+            cedula=f"9{indice:09d}",
+            correo_corporativo=f"extra{indice}@example.com",
+            cargo=self.cargo,
+            area=self.area,
+            ubicacion=self.ubicacion,
+            centro_costo=self.centro_costo,
+            fecha_ingreso=date(2024, 3, 1),
+        )
+        activo = Activo.objects.create(
+            tipo_activo=self.tipo_laptop,
+            marca="Acer",
+            modelo=f"Model {indice}",
+            serie=f"SER{indice:03d}",
+            estado_activo=self.estado_disponible,
+        )
+        asignacion = Asignacion.objects.create(
+            colaborador=colaborador,
+            fecha_asignacion=fecha_asignacion,
+            usuario_responsable=self.user,
+        )
+        AsignacionDetalle.objects.create(
+            asignacion=asignacion,
+            activo=activo,
+            orden=1,
+        )
+        return asignacion
+
     def test_list_view_filters_by_search_term(self):
         self.client.force_login(self.user)
 
@@ -474,3 +505,36 @@ class AsignacionListViewTests(TestCase):
         self.assertEqual(asignaciones[0], self.asignacion_activa)
         self.assertEqual(response.context["orden_seleccionado"], "actividad")
         self.assertContains(response, "Actividad mas reciente")
+
+    def test_list_view_paginates_at_ten_items_and_preserves_filters(self):
+        self.client.force_login(self.user)
+
+        for indice in range(1, 10):
+            self._crear_asignacion_adicional(indice, date(2026, 4, indice))
+
+        response = self.client.get(reverse("asignaciones:lista"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["is_paginated"])
+        self.assertEqual(response.context["paginator"].per_page, 10)
+        self.assertEqual(len(list(response.context["asignaciones"])), 10)
+        self.assertEqual(response.context["page_obj"].number, 1)
+        self.assertTrue(response.context["page_obj"].has_next())
+        self.assertContains(response, "Mostrando 1 a 10 de 11 asignaciones")
+        self.assertEqual(response.context["query_string"], "")
+
+        second_page = self.client.get(reverse("asignaciones:lista"), {"page": 2})
+
+        self.assertEqual(second_page.status_code, 200)
+        self.assertEqual(len(list(second_page.context["asignaciones"])), 1)
+        self.assertEqual(second_page.context["page_obj"].number, 2)
+        self.assertFalse(second_page.context["page_obj"].has_next())
+        self.assertContains(second_page, "Mostrando 11 a 11 de 11 asignaciones")
+
+        filtered = self.client.get(
+            reverse("asignaciones:lista"),
+            {"q": self.activo_laptop.codigo},
+        )
+
+        self.assertEqual(filtered.status_code, 200)
+        self.assertEqual(filtered.context["query_string"], f"q={self.activo_laptop.codigo}")
