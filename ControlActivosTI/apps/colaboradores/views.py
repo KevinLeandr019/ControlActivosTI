@@ -40,11 +40,9 @@ class ColaboradorListView(LoginRequiredMixin, ListView):
         "apellidos",
         "nombres",
         "cedula",
-        "correo_corporativo",
         "empresa",
         "area",
         "cargo",
-        "ubicacion",
         "estado",
     ]
 

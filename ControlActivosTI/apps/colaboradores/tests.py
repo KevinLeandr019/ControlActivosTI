@@ -81,6 +81,18 @@ class ColaboradorListViewTests(TestCase):
         self.assertEqual(response.context["total_columnas_tabla"], 2)
         self.assertContains(response, 'colspan="2"')
 
+    def test_list_view_uses_updated_default_columns(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("colaboradores:lista"))
+
+        self.assertEqual(
+            response.context["columnas_seleccionadas"],
+            ["apellidos", "nombres", "cedula", "empresa", "area", "cargo", "estado"],
+        )
+        self.assertContains(response, 'font-semibold text-slate-900">Zambrano')
+        self.assertContains(response, 'font-semibold text-slate-900">Ana')
+
     def test_list_view_paginates_at_ten_items(self):
         self.client.force_login(self.user)
 

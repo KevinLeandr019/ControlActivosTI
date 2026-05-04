@@ -104,6 +104,18 @@ class Admin2ViewsTests(TestCase):
         self.assertContains(response, self.activo.codigo)
         self.assertContains(response, "Disponibles")
 
+    def test_admin2_dashboard_uses_current_ceco_name_after_rename(self):
+        self.ceco.nombre = "Tecnologia Renovada"
+        self.ceco.codigo = "2001"
+        self.ceco.save()
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("dashboard-inicio"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "2001 - Tecnologia Renovada")
+        self.assertNotContains(response, "TI001 - Tecnologia")
+
     def test_admin2_catalog_can_create_records(self):
         self.client.force_login(self.user)
 

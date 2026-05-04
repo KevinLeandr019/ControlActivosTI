@@ -202,8 +202,8 @@
                         </tr>
                     {% endifchanged %}
                     <tr class="align-top text-slate-700">
-                        {% if "apellidos" in columnas_seleccionadas %}<td class="px-4 py-3 font-medium text-slate-900">{{ colaborador.apellidos }}</td>{% endif %}
-                        {% if "nombres" in columnas_seleccionadas %}<td class="px-4 py-3">{{ colaborador.nombres }}</td>{% endif %}
+                        {% if "apellidos" in columnas_seleccionadas %}<td class="px-4 py-3 font-semibold text-slate-900">{{ colaborador.apellidos }}</td>{% endif %}
+                        {% if "nombres" in columnas_seleccionadas %}<td class="px-4 py-3 font-semibold text-slate-900">{{ colaborador.nombres }}</td>{% endif %}
                         {% if "cedula" in columnas_seleccionadas %}<td class="px-4 py-3">{{ colaborador.cedula }}</td>{% endif %}
                         {% if "correo_corporativo" in columnas_seleccionadas %}<td class="px-4 py-3">{{ colaborador.correo_corporativo }}</td>{% endif %}
                         {% if "empresa" in columnas_seleccionadas %}<td class="px-4 py-3">{{ colaborador.empresa|default:"-" }}</td>{% endif %}

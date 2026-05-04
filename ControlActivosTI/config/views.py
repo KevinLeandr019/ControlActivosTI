@@ -50,11 +50,11 @@ class InicioView(LoginRequiredMixin, TemplateView):
                 asignacion__estado_asignacion__in=ASIGNACIONES_ABIERTAS,
             )
             .values(
-                "asignacion__centro_costo_codigo",
-                "asignacion__centro_costo_nombre",
+                "asignacion__centro_costo__codigo",
+                "asignacion__centro_costo__nombre",
             )
             .annotate(total=Count("id"))
-            .order_by("-total", "asignacion__centro_costo_codigo")[:10]
+            .order_by("-total", "asignacion__centro_costo__codigo")[:10]
         )
         colaboradores_por_area = list(
             Colaborador.objects.values("area__nombre")
@@ -132,6 +132,6 @@ class InicioView(LoginRequiredMixin, TemplateView):
         return context
 
     def _formatear_ceco_label(self, item):
-        codigo = item["asignacion__centro_costo_codigo"] or "Sin CECO"
-        nombre = item["asignacion__centro_costo_nombre"]
+        codigo = item["asignacion__centro_costo__codigo"] or "Sin CECO"
+        nombre = item["asignacion__centro_costo__nombre"]
         return f"{codigo} - {nombre}" if nombre else codigo
