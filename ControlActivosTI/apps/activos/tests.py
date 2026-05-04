@@ -236,6 +236,36 @@ class EventoActivoAdminFormTests(TestCase):
         )
 
 
+class EventoActivoAdminViewTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            username="admin",
+            password="testpass123",
+            email="admin@example.com",
+        )
+        self.estado = EstadoActivo.objects.create(nombre="Disponible", permite_asignacion=True)
+        self.tipo_laptop = TipoActivo.objects.create(nombre="Laptop")
+        self.activo = Activo.objects.create(
+            tipo_activo=self.tipo_laptop,
+            marca="Dell",
+            modelo="Latitude",
+            serie="LAP-100",
+            estado_activo=self.estado,
+        )
+
+    def test_add_view_prefills_active_from_querystring(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.get(
+            reverse("admin:activos_eventoactivo_add"),
+            {"activo": self.activo.pk},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["adminform"].form.initial.get("activo"), self.activo.pk)
+        self.assertContains(response, "Activo afectado")
+
+
 class EventoActivoImpactoTests(TestCase):
     def setUp(self):
         self.usuario = User.objects.create_user(username="soporte", password="testpass123")

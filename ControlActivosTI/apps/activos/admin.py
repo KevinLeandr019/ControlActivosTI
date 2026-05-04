@@ -233,6 +233,13 @@ class EventoActivoAdmin(admin.ModelAdmin):
         "nuevo_estado_activo",
     )
 
+    def get_changeform_initial_data(self, request):
+        initial = super().get_changeform_initial_data(request)
+        activo_id = request.GET.get("activo", "").strip()
+        if activo_id.isdigit():
+            initial["activo"] = int(activo_id)
+        return initial
+
     def valor_anterior_registrado(self, obj):
         if obj and obj.valor_anterior:
             return obj.valor_anterior
