@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, Prefetch, Q
+from django.urls import reverse
 from django.views.generic import DetailView, ListView
 
 from apps.activos.models import FotoActivo
@@ -170,6 +171,10 @@ class ColaboradorDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         colaborador = self.object
+        context["admin_change_url"] = reverse(
+            "admin:colaboradores_colaborador_change",
+            args=[colaborador.pk],
+        )
         asignaciones = list(colaborador.asignaciones.all())
 
         detalles_activos_actuales = []

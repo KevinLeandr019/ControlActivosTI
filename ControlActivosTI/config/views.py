@@ -1,5 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from django.views.generic import TemplateView
 
 from apps.activos.models import Activo
@@ -10,6 +10,14 @@ ASIGNACIONES_ABIERTAS = [
     Asignacion.EstadoAsignacion.ACTIVA,
     Asignacion.EstadoAsignacion.PARCIAL,
 ]
+
+ESTADO_ASIGNABLE_Q = (
+    Q(estado_activo__permite_asignacion=True)
+    & ~Q(estado_activo__nombre__icontains="repar")
+    & ~Q(estado_activo__nombre__icontains="cuarentena")
+)
+
+ESTADO_ASIGNADO_Q = Q(estado_activo__nombre__iexact="Asignado")
 
 
 class InicioView(LoginRequiredMixin, TemplateView):
@@ -26,12 +34,8 @@ class InicioView(LoginRequiredMixin, TemplateView):
         asignaciones_activas = Asignacion.objects.filter(
             estado_asignacion__in=ASIGNACIONES_ABIERTAS
         ).count()
-        activos_disponibles = Activo.objects.filter(
-            estado_activo__permite_asignacion=True
-        ).count()
-        activos_asignados = Activo.objects.filter(
-            estado_activo__nombre__iexact="Asignado"
-        ).count()
+        activos_disponibles = Activo.objects.filter(ESTADO_ASIGNABLE_Q).count()
+        activos_asignados = Activo.objects.filter(ESTADO_ASIGNADO_Q).count()
         valor_total_activos = Activo.objects.aggregate(total=Sum("valor")).get("total") or 0
 
         activos_por_estado = list(
@@ -43,6 +47,15 @@ class InicioView(LoginRequiredMixin, TemplateView):
             Activo.objects.values("tipo_activo__nombre")
             .annotate(total=Count("id"))
             .order_by("-total", "tipo_activo__nombre")[:8]
+        )
+        activos_por_tipo_resumen = list(
+            Activo.objects.values("tipo_activo__nombre")
+            .annotate(
+                total=Count("id"),
+                disponibles=Count("id", filter=ESTADO_ASIGNABLE_Q),
+                asignados=Count("id", filter=ESTADO_ASIGNADO_Q),
+            )
+            .order_by("tipo_activo__nombre")
         )
         activos_por_ceco = list(
             AsignacionDetalle.objects.filter(
@@ -117,6 +130,7 @@ class InicioView(LoginRequiredMixin, TemplateView):
                     item["tipo_activo__nombre"] for item in activos_por_tipo
                 ],
                 "activos_tipo_data": [item["total"] for item in activos_por_tipo],
+                "activos_tipo_resumen": activos_por_tipo_resumen,
                 "cecos_labels": [
                     self._formatear_ceco_label(item) for item in activos_por_ceco
                 ],

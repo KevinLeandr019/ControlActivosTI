@@ -90,7 +90,8 @@ class ColaboradorListViewTests(TestCase):
             response.context["columnas_seleccionadas"],
             ["apellidos", "nombres", "cedula", "empresa", "area", "cargo", "estado"],
         )
-        self.assertContains(response, 'font-semibold text-slate-900">Zambrano')
+        self.assertContains(response, "inline-flex rounded-lg border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700")
+        self.assertContains(response, "Zambrano")
         self.assertContains(response, 'font-semibold text-slate-900">Ana')
 
     def test_list_view_paginates_at_ten_items(self):
@@ -117,3 +118,35 @@ class ColaboradorListViewTests(TestCase):
         self.assertEqual(second_page.context["page_obj"].number, 2)
         self.assertFalse(second_page.context["page_obj"].has_next())
         self.assertContains(second_page, "Mostrando 11 a 11 de 11 colaboradores")
+
+
+class ColaboradorDetailViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="rrhh-detail", password="testpass123")
+        self.area = Area.objects.create(nombre="TI")
+        self.cargo = Cargo.objects.create(nombre="Soporte")
+        self.ubicacion = Ubicacion.objects.create(nombre="Matriz")
+        self.empresa = Empresa.objects.create(nombre="Andes Corp")
+        self.colaborador = Colaborador.objects.create(
+            nombres="Ana",
+            apellidos="Zambrano",
+            cedula="0102030405",
+            correo_corporativo="ana@example.com",
+            empresa=self.empresa,
+            cargo=self.cargo,
+            area=self.area,
+            ubicacion=self.ubicacion,
+            fecha_ingreso=date(2024, 1, 10),
+        )
+
+    def test_detail_view_exposes_admin_edit_button(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("colaboradores:detalle", args=[self.colaborador.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            reverse("admin:colaboradores_colaborador_change", args=[self.colaborador.pk]),
+        )
+        self.assertContains(response, "Editar colaborador")

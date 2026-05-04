@@ -39,6 +39,7 @@ class Admin2ViewsTests(TestCase):
             activo=True,
         )
         self.tipo_activo = TipoActivo.objects.create(nombre="Laptop")
+        self.tipo_teclado = TipoActivo.objects.create(nombre="Teclado")
         self.estado_disponible = EstadoActivo.objects.create(
             nombre="Disponible",
             permite_asignacion=True,
@@ -63,6 +64,13 @@ class Admin2ViewsTests(TestCase):
             marca="Dell",
             modelo="Latitude 5440",
             serie="ABC123",
+            estado_activo=self.estado_disponible,
+        )
+        self.activo_teclado = Activo.objects.create(
+            tipo_activo=self.tipo_teclado,
+            marca="Logitech",
+            modelo="K120",
+            serie="KEY123",
             estado_activo=self.estado_disponible,
         )
         self.asignacion = Asignacion.objects.create(
@@ -93,6 +101,25 @@ class Admin2ViewsTests(TestCase):
         self.assertContains(response, "Activos")
         self.assertContains(response, "Asignaciones")
         self.assertContains(response, "Activos registrados")
+
+    def test_dashboard_shows_assets_by_type_availability_summary(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("dashboard-inicio"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Disponibilidad por tipo de activo")
+
+        resumen_por_tipo = {
+            item["tipo_activo__nombre"]: item for item in response.context["activos_tipo_resumen"]
+        }
+
+        self.assertEqual(resumen_por_tipo["Laptop"]["disponibles"], 0)
+        self.assertEqual(resumen_por_tipo["Laptop"]["asignados"], 1)
+        self.assertEqual(resumen_por_tipo["Laptop"]["total"], 1)
+        self.assertEqual(resumen_por_tipo["Teclado"]["disponibles"], 1)
+        self.assertEqual(resumen_por_tipo["Teclado"]["asignados"], 0)
+        self.assertEqual(resumen_por_tipo["Teclado"]["total"], 1)
 
     def test_admin2_home_uses_practical_section_names(self):
         self.client.force_login(self.user)
@@ -186,7 +213,7 @@ class PerfilUsuarioViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(PerfilUsuario.objects.filter(user=self.user).exists())
-        self.assertContains(response, "Actualiza tu informacion basica")
+        self.assertContains(response, "Actualiza tu información básica")
 
     def test_profile_view_updates_basic_data(self):
         self.client.force_login(self.user)
