@@ -305,7 +305,11 @@
             },
             scales: {
                 x: {
-                    ticks: { color: "#64748b" },
+                    ticks: {
+                        color: "#64748b",
+                        stepSize: 1,
+                        precision: 0,
+                    },
                     grid: { display: false },
                 },
                 y: {
