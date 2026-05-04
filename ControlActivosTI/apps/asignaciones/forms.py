@@ -22,6 +22,15 @@ TEXTAREA_CLASS = (
 )
 
 
+def get_activos_asignables_queryset():
+    queryset = (
+        Activo.objects.select_related("tipo_activo", "estado_activo")
+        .filter(estado_activo__activo=True)
+        .order_by("codigo")
+    )
+    return queryset
+
+
 class ActivoSelectMultiple(forms.SelectMultiple):
     def create_option(
         self,
@@ -141,11 +150,7 @@ class AsignacionCreateForm(forms.ModelForm):
             .filter(estado=Colaborador.EstadoColaborador.ACTIVO)
             .order_by("apellidos", "nombres")
         )
-        self.fields["activos"].queryset = (
-            Activo.objects.select_related("tipo_activo", "estado_activo")
-            .filter(estado_activo__permite_asignacion=True)
-            .order_by("codigo")
-        )
+        self.fields["activos"].queryset = get_activos_asignables_queryset()
         self.fields["fecha_asignacion"].initial = timezone.localdate()
 
         for name, field in self.fields.items():
@@ -160,6 +165,17 @@ class AsignacionCreateForm(forms.ModelForm):
         activos = self.cleaned_data.get("activos")
         if not activos:
             raise forms.ValidationError("Debes seleccionar al menos un activo.")
+
+        no_asignables = [
+            activo
+            for activo in activos
+            if not activo.estado_activo.es_asignable_para_nueva_asignacion
+        ]
+        if no_asignables:
+            codigos = ", ".join(activo.codigo for activo in no_asignables)
+            raise forms.ValidationError(
+                f"No puedes asignar los activos seleccionados porque no están disponibles: {codigos}."
+            )
         return activos
 
     def clean_colaborador(self):

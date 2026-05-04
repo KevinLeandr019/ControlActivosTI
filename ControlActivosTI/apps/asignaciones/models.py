@@ -261,7 +261,7 @@ class AsignacionDetalle(models.Model):
         super().clean()
 
         if self.activa:
-            if self.activo_id and not self.activo.estado_activo.permite_asignacion:
+            if self.activo_id and not self.activo.estado_activo.es_asignable_para_nueva_asignacion:
                 raise ValidationError({"activo": "El activo seleccionado no está disponible para asignación."})
 
             existe_otra_activa = AsignacionDetalle.objects.filter(activo_id=self.activo_id, activa=True)

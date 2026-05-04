@@ -2,7 +2,7 @@
 {% block title %}Nueva asignación - ControlActivosTI{% endblock %}
 {% block page_title %}Nueva asignación{% endblock %}
 {% block content %}
-<form method="post" class="space-y-6">
+<form method="post" id="asignacion-form" class="space-y-6">
     {% csrf_token %}
 
     <div>
@@ -16,7 +16,7 @@
     <div>
         <label class="mb-2 block text-sm font-semibold text-slate-700">Activos</label>
         <div class="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto]">
+            <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto_auto]">
                 <div>
                     <label for="filtro-activos" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                         Buscar activos
@@ -27,6 +27,20 @@
                         placeholder="Filtra por código, tipo, marca, modelo, serie o especificaciones"
                         class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition duration-200 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
                     >
+                </div>
+                <div>
+                    <label for="filtro-estado-activos" class="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                        Filtrar por estado
+                    </label>
+                    <select
+                        id="filtro-estado-activos"
+                        class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition duration-200 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+                    >
+                        <option value="">Todos los estados</option>
+                        {% for estado in estados_activo_filtro %}
+                            <option value="{{ estado }}" {% if estado|lower == "disponible" %}selected{% endif %}>{{ estado }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <button
                     id="seleccionar-visibles"
@@ -61,7 +75,7 @@
                         <tbody id="tabla-activos-body" class="divide-y divide-slate-200">
                             {% for activo in activos_disponibles %}
                                 <tr
-                                    class="activo-row transition hover:bg-cyan-50"
+                                    class="activo-row transition hover:bg-cyan-50 {% if not activo.estado_activo.es_asignable_para_nueva_asignacion %}opacity-60{% endif %}"
                                     data-search="{{ activo.codigo|lower }} {{ activo.tipo_activo.nombre|lower }} {{ activo.marca|lower }} {{ activo.modelo|lower }} {{ activo.serie|lower }} {{ activo.cpu|lower }} {{ activo.ram|lower }} {{ activo.disco|lower }} {{ activo.sistema_operativo|lower }} {{ activo.estado_activo.nombre|lower }} {{ activo.observaciones|lower }}"
                                     data-codigo="{{ activo.codigo }}"
                                     data-tipo="{{ activo.tipo_activo.nombre }}"
@@ -69,6 +83,7 @@
                                     data-serie="{{ activo.serie|default:'S/N' }}"
                                     data-especificaciones="{% if activo.cpu %}CPU: {{ activo.cpu }}{% endif %}{% if activo.ram %}{% if activo.cpu %} | {% endif %}RAM: {{ activo.ram }}{% endif %}{% if activo.disco %}{% if activo.cpu or activo.ram %} | {% endif %}Disco: {{ activo.disco }}{% endif %}{% if activo.sistema_operativo %}{% if activo.cpu or activo.ram or activo.disco %} | {% endif %}SO: {{ activo.sistema_operativo }}{% endif %}"
                                     data-estado="{{ activo.estado_activo.nombre }}"
+                                    data-puede-asignarse="{{ activo.estado_activo.es_asignable_para_nueva_asignacion|yesno:'true,false' }}"
                                 >
                                     <td class="px-4 py-3 text-center">
                                         <input
@@ -76,6 +91,7 @@
                                             name="activos"
                                             value="{{ activo.pk }}"
                                             class="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                                            {% if not activo.estado_activo.es_asignable_para_nueva_asignacion %}disabled aria-disabled="true"{% endif %}
                                             {% if activo.pk in activos_seleccionados %}checked{% endif %}
                                         >
                                     </td>
@@ -95,7 +111,7 @@
                                         </div>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <span class="rounded-full px-3 py-1 text-xs font-semibold {% if activo.estado_activo.nombre|lower == 'disponible' %}bg-emerald-100 text-emerald-700{% else %}bg-slate-200 text-slate-700{% endif %}">
+                                        <span class="rounded-full px-3 py-1 text-xs font-semibold {% if activo.estado_activo.es_asignable_para_nueva_asignacion %}bg-emerald-100 text-emerald-700{% else %}bg-rose-100 text-rose-700{% endif %}">
                                             {{ activo.estado_activo.nombre }}
                                         </span>
                                     </td>
@@ -169,9 +185,56 @@
     </div>
 </form>
 
+<div id="confirmacion-asignacion-modal" class="fixed inset-0 z-50 hidden items-center justify-center px-4" aria-hidden="true">
+    <div class="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"></div>
+    <div class="relative w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
+        <div class="flex items-start justify-between gap-4">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-amber-500">Advertencia</p>
+                <h2 class="mt-2 text-2xl font-bold text-slate-900">Confirmar asignación múltiple</h2>
+            </div>
+            <button
+                type="button"
+                id="cerrar-confirmacion-asignacion"
+                class="rounded-full border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                aria-label="Cerrar"
+            >
+                ✕
+            </button>
+        </div>
+
+        <p class="mt-4 text-sm leading-6 text-slate-700">
+            Estás asignando 4 o más activos a un mismo usuario:
+        </p>
+        <ul id="confirmacion-asignacion-lista" class="mt-4 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"></ul>
+        <p class="mt-4 text-base font-semibold text-slate-900">
+            ¿Estás seguro de que esta asignación es correcta?
+        </p>
+
+        <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button
+                type="button"
+                id="regresar-confirmacion-asignacion"
+                class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+                Regresar
+            </button>
+            <button
+                type="button"
+                id="confirmar-asignacion"
+                class="rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-cyan-700"
+            >
+                Crear asignación
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
     (() => {
+        const formulario = document.getElementById("asignacion-form");
         const filtro = document.getElementById("filtro-activos");
+        const filtroEstado = document.getElementById("filtro-estado-activos");
         const cuerpoTabla = document.getElementById("tabla-activos-body");
         const sinResultados = document.getElementById("activos-sin-resultados");
         const contador = document.getElementById("activos-seleccionados-contador");
@@ -179,21 +242,80 @@
         const vacio = document.getElementById("activos-seleccionados-vacio");
         const seleccionarVisibles = document.getElementById("seleccionar-visibles");
         const limpiarSeleccion = document.getElementById("limpiar-seleccion");
+        const modal = document.getElementById("confirmacion-asignacion-modal");
+        const modalLista = document.getElementById("confirmacion-asignacion-lista");
+        const cerrarModal = document.getElementById("cerrar-confirmacion-asignacion");
+        const regresarModal = document.getElementById("regresar-confirmacion-asignacion");
+        const confirmarModal = document.getElementById("confirmar-asignacion");
 
-        if (!filtro || !cuerpoTabla || !sinResultados || !contador || !lista || !vacio) {
+        if (
+            !formulario ||
+            !filtro ||
+            !filtroEstado ||
+            !cuerpoTabla ||
+            !sinResultados ||
+            !contador ||
+            !lista ||
+            !vacio ||
+            !modal ||
+            !modalLista ||
+            !cerrarModal ||
+            !regresarModal ||
+            !confirmarModal
+        ) {
             return;
         }
 
         const filas = Array.from(cuerpoTabla.querySelectorAll(".activo-row"));
+        let envioConfirmado = false;
 
         const obtenerCheckbox = (fila) => fila.querySelector('input[type="checkbox"][name="activos"]');
 
+        const getSeleccionados = () =>
+            filas.filter((fila) => {
+                const checkbox = obtenerCheckbox(fila);
+                return checkbox && checkbox.checked;
+            });
+
+        const cerrarModalConfirmacion = () => {
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+            modal.setAttribute("aria-hidden", "true");
+        };
+
+        const abrirModalConfirmacion = () => {
+            const seleccionados = getSeleccionados();
+            modalLista.innerHTML = "";
+
+            seleccionados.forEach((fila) => {
+                const item = document.createElement("li");
+                item.className = "flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3";
+                item.innerHTML = `
+                    <div>
+                        <p class="font-semibold text-slate-900">${fila.dataset.codigo || ""}</p>
+                        <p class="text-sm text-slate-600">${fila.dataset.marcaModelo || ""}</p>
+                    </div>
+                    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                        ${fila.dataset.estado || ""}
+                    </span>
+                `;
+                modalLista.appendChild(item);
+            });
+
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+            modal.setAttribute("aria-hidden", "false");
+        };
+
         const actualizarFiltro = () => {
             const termino = filtro.value.trim().toLowerCase();
+            const estadoSeleccionado = filtroEstado.value.trim().toLowerCase();
             let visibles = 0;
 
             filas.forEach((fila) => {
-                const coincide = !termino || (fila.dataset.search || "").includes(termino);
+                const coincideTexto = !termino || (fila.dataset.search || "").includes(termino);
+                const coincideEstado = !estadoSeleccionado || (fila.dataset.estado || "").toLowerCase() === estadoSeleccionado;
+                const coincide = coincideTexto && coincideEstado;
                 fila.classList.toggle("hidden", !coincide);
                 if (coincide) {
                     visibles += 1;
@@ -235,10 +357,7 @@
         };
 
         const actualizarSeleccion = () => {
-            const seleccionados = filas.filter((fila) => {
-                const checkbox = obtenerCheckbox(fila);
-                return checkbox && checkbox.checked;
-            });
+            const seleccionados = getSeleccionados();
 
             contador.textContent = `${seleccionados.length} seleccionado${seleccionados.length === 1 ? "" : "s"}`;
             lista.innerHTML = "";
@@ -254,26 +373,36 @@
             });
         };
 
-        filas.forEach((fila) => {
-            const checkbox = obtenerCheckbox(fila);
-            if (!checkbox) {
-                return;
-            }
-
-            fila.classList.toggle("bg-cyan-50", checkbox.checked);
-            checkbox.addEventListener("change", () => {
-                fila.classList.toggle("bg-cyan-50", checkbox.checked);
-                actualizarSeleccion();
-            });
-
-            fila.addEventListener("click", (event) => {
-                if (event.target.closest('input, button, a, label')) {
+            filas.forEach((fila) => {
+                const checkbox = obtenerCheckbox(fila);
+                if (!checkbox) {
                     return;
                 }
-                checkbox.checked = !checkbox.checked;
-                checkbox.dispatchEvent(new Event("change"));
+                if (checkbox.disabled) {
+                    fila.classList.add("opacity-60");
+                }
+
+                fila.classList.toggle("bg-cyan-50", checkbox.checked);
+                checkbox.addEventListener("change", () => {
+                    if (checkbox.disabled) {
+                        checkbox.checked = false;
+                        return;
+                    }
+                    fila.classList.toggle("bg-cyan-50", checkbox.checked);
+                    actualizarSeleccion();
+                });
+
+                fila.addEventListener("click", (event) => {
+                    if (event.target.closest('input, button, a, label')) {
+                        return;
+                    }
+                    if (checkbox.disabled) {
+                        return;
+                    }
+                    checkbox.checked = !checkbox.checked;
+                    checkbox.dispatchEvent(new Event("change"));
+                });
             });
-        });
 
         if (seleccionarVisibles) {
             seleccionarVisibles.addEventListener("click", () => {
@@ -283,6 +412,9 @@
                     }
                     const checkbox = obtenerCheckbox(fila);
                     if (!checkbox) {
+                        return;
+                    }
+                    if (checkbox.disabled) {
                         return;
                     }
                     checkbox.checked = true;
@@ -306,7 +438,44 @@
             });
         }
 
+        formulario.addEventListener("submit", (event) => {
+            if (envioConfirmado) {
+                return;
+            }
+
+            const seleccionados = getSeleccionados();
+            if (seleccionados.length >= 4) {
+                event.preventDefault();
+                abrirModalConfirmacion();
+            }
+        });
+
+        cerrarModal.addEventListener("click", cerrarModalConfirmacion);
+        regresarModal.addEventListener("click", cerrarModalConfirmacion);
+        modal.addEventListener("click", (event) => {
+            if (event.target === modal) {
+                cerrarModalConfirmacion();
+            }
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && !modal.classList.contains("hidden")) {
+                cerrarModalConfirmacion();
+            }
+        });
+
+        confirmarModal.addEventListener("click", () => {
+            envioConfirmado = true;
+            cerrarModalConfirmacion();
+            if (formulario.requestSubmit) {
+                formulario.requestSubmit();
+            } else {
+                formulario.submit();
+            }
+        });
+
         filtro.addEventListener("input", actualizarFiltro);
+        filtroEstado.addEventListener("change", actualizarFiltro);
 
         actualizarFiltro();
         actualizarSeleccion();

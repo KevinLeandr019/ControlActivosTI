@@ -168,8 +168,16 @@ class AsignacionCreateView(LoginRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         form = context["form"]
         activos_seleccionados = form["activos"].value() or []
-        context["activos_disponibles"] = form.fields["activos"].queryset
+        activos_disponibles = form.fields["activos"].queryset
+        context["activos_disponibles"] = activos_disponibles
         context["activos_seleccionados"] = [int(activo_id) for activo_id in activos_seleccionados]
+        context["estados_activo_filtro"] = sorted(
+            {
+                activo.estado_activo.nombre
+                for activo in activos_disponibles
+                if activo.estado_activo_id and activo.estado_activo.activo
+            }
+        )
         return context
 
     def form_valid(self, form):

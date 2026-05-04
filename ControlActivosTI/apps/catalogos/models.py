@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
+import unicodedata
 
 
 ceco_codigo_validator = RegexValidator(
@@ -199,6 +200,19 @@ class EstadoActivo(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    @property
+    def nombre_normalizado(self):
+        nombre = unicodedata.normalize("NFKD", self.nombre or "")
+        nombre = "".join(caracter for caracter in nombre if not unicodedata.combining(caracter))
+        return nombre.lower().strip()
+
+    @property
+    def es_asignable_para_nueva_asignacion(self):
+        if not self.permite_asignacion:
+            return False
+        nombre = self.nombre_normalizado
+        return "cuarentena" not in nombre and "repar" not in nombre
 
 
 class TipoEventoActivo(models.Model):

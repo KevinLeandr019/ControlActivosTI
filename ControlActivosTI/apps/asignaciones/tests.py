@@ -2,6 +2,7 @@ from datetime import date
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -43,6 +44,14 @@ class AsignacionCreateFormTests(TestCase):
             nombre="Danado",
             permite_asignacion=False,
         )
+        self.estado_cuarentena = EstadoActivo.objects.create(
+            nombre="Cuarentena",
+            permite_asignacion=True,
+        )
+        self.estado_reparacion = EstadoActivo.objects.create(
+            nombre="Reparacion",
+            permite_asignacion=True,
+        )
         self.colaborador = Colaborador.objects.create(
             nombres="Ana",
             apellidos="Perez",
@@ -72,6 +81,20 @@ class AsignacionCreateFormTests(TestCase):
             serie="XYZ999",
             estado_activo=self.estado_no_disponible,
         )
+        self.activo_cuarentena = Activo.objects.create(
+            tipo_activo=self.tipo_activo,
+            marca="Lenovo",
+            modelo="ThinkPad",
+            serie="CW001",
+            estado_activo=self.estado_cuarentena,
+        )
+        self.activo_reparacion = Activo.objects.create(
+            tipo_activo=self.tipo_activo,
+            marca="Acer",
+            modelo="Swift",
+            serie="RP001",
+            estado_activo=self.estado_reparacion,
+        )
 
     def test_form_only_lists_assignable_assets(self):
         form = AsignacionCreateForm()
@@ -79,7 +102,9 @@ class AsignacionCreateFormTests(TestCase):
         queryset = form.fields["activos"].queryset
 
         self.assertIn(self.activo_disponible, queryset)
-        self.assertNotIn(self.activo_no_disponible, queryset)
+        self.assertIn(self.activo_no_disponible, queryset)
+        self.assertIn(self.activo_cuarentena, queryset)
+        self.assertIn(self.activo_reparacion, queryset)
 
     def test_form_renders_detailed_asset_labels_and_filter_metadata(self):
         form = AsignacionCreateForm()
@@ -93,16 +118,63 @@ class AsignacionCreateFormTests(TestCase):
         self.assertIn('data-search="', rendered)
         self.assertIn('data-especificaciones="CPU: Intel Core i7 | RAM: 16 GB | Disco: 512 GB SSD | SO: Windows 11"', rendered)
 
+    def test_asignacion_detalle_rejects_repair_assets_even_if_state_allows_assignment(self):
+        activo_reparacion = Activo.objects.create(
+            tipo_activo=self.tipo_activo,
+            marca="Acer",
+            modelo="Swift 3",
+            serie="REP-001",
+            estado_activo=self.estado_reparacion,
+        )
+        asignacion = Asignacion.objects.create(
+            colaborador=self.colaborador,
+            fecha_asignacion=date(2026, 4, 20),
+            observaciones_entrega="Entrega inicial",
+            usuario_responsable=self.user,
+        )
+
+        detalle = AsignacionDetalle(
+            asignacion=asignacion,
+            activo=activo_reparacion,
+            orden=1,
+        )
+
+        with self.assertRaises(ValidationError):
+            detalle.full_clean()
+
     def test_create_view_renders_asset_table_with_checkboxes(self):
         self.client.force_login(self.user)
 
         response = self.client.get(reverse("asignaciones:nueva"))
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Filtrar por estado", html=False)
         self.assertContains(response, "Seleccionar visibles")
         self.assertContains(response, "Marca / Modelo")
         self.assertContains(response, 'type="checkbox"', html=False)
         self.assertContains(response, f'value="{self.activo_disponible.pk}"', html=False)
+        self.assertContains(response, "Todos los estados")
+        self.assertContains(response, 'selected', html=False)
+        self.assertContains(response, f'value="{self.activo_reparacion.pk}"', html=False)
+        self.assertContains(response, 'disabled', html=False)
+        self.assertContains(response, "Confirmar asignación múltiple")
+        self.assertContains(response, "Crear asignación")
+        self.assertContains(response, "Regresar")
+        self.assertContains(response, "Estás asignando 4 o más activos a un mismo usuario")
+
+    def test_form_rejects_non_assignable_assets_on_post(self):
+        form = AsignacionCreateForm(
+            data={
+                "colaborador": self.colaborador.pk,
+                "fecha_asignacion": "2026-04-20",
+                "observaciones_entrega": "",
+                "activos": [self.activo_disponible.pk, self.activo_reparacion.pk],
+            }
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("activos", form.errors)
+        self.assertIn("no están disponibles", form.errors["activos"][0])
 
     def test_devolucion_view_accepts_post_for_active_detail(self):
         asignacion = Asignacion.objects.create(
