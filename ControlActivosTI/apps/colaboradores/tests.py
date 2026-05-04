@@ -118,6 +118,57 @@ class ColaboradorListViewTests(TestCase):
         self.assertEqual(second_page.context["page_obj"].number, 2)
         self.assertFalse(second_page.context["page_obj"].has_next())
         self.assertContains(second_page, "Mostrando 11 a 11 de 11 colaboradores")
+    
+    def test_list_view_shows_add_colaborador_button(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("colaboradores:lista"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("colaboradores:nuevo"))
+        self.assertContains(response, "Agregar colaborador")
+
+
+class ColaboradorCreateViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="rrhh-create", password="testpass123")
+        self.area = Area.objects.create(nombre="TI")
+        self.cargo = Cargo.objects.create(nombre="Soporte")
+        self.ubicacion = Ubicacion.objects.create(nombre="Matriz")
+        self.empresa = Empresa.objects.create(nombre="Andes Corp")
+
+    def test_create_view_renders_form(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("colaboradores:nuevo"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Agregar colaborador")
+        self.assertContains(response, "Guardar colaborador")
+
+    def test_create_view_saves_colaborador(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("colaboradores:nuevo"),
+            {
+                "nombres": "Mariana",
+                "apellidos": "Gomez",
+                "cedula": "1234567890",
+                "correo_corporativo": "mariana@example.com",
+                "empresa": self.empresa.pk,
+                "cargo": self.cargo.pk,
+                "area": self.area.pk,
+                "ubicacion": self.ubicacion.pk,
+                "centro_costo": "",
+                "estado": Colaborador.EstadoColaborador.ACTIVO,
+                "fecha_ingreso": "2024-04-01",
+                "observaciones": "Alta inicial",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Colaborador.objects.filter(cedula="1234567890").exists())
 
 
 class ColaboradorDetailViewTests(TestCase):

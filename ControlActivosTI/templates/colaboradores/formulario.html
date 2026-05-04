@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Nuevo colaborador - ControlActivosTI{% endblock %}
+{% block page_title %}Nuevo colaborador{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex items-center justify-between gap-4">
+    <div>
+        <h2 class="text-xl font-semibold text-slate-900">Agregar colaborador</h2>
+        <p class="text-sm text-slate-500">Registra un nuevo colaborador para poder asignarle activos luego.</p>
+    </div>
+    <a href="{% url 'colaboradores:lista' %}" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+        Volver a colaboradores
+    </a>
+</div>
+
+<form method="post" class="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    {% csrf_token %}
+
+    <div class="grid gap-6 md:grid-cols-2">
+        <div>
+            <label class="mb-2 block text-sm font-semibold text-slate-700" for="{{ form.nombres.id_for_label }}">Nombres</label>
+            {{ form.nombres }}
+            {% if form.nombres.errors %}<p class="mt-2 text-sm text-red-600">{{ form.nombres.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+            <label class="mb-2 block text-sm font-semibold text-slate-700" for="{{ form.apellidos.id_for_label }}">Apellidos</label>
+            {{ form.apellidos }}
+            {% if form.apellidos.errors %}<p class="mt-2 text-sm text-red-600">{{ form.apellidos.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+            <label class="mb-2 block text-sm font-semibold text-slate-700" for="{{ form.cedula.id_for_label }}">Cédula</label>
+            {{ form.cedula }}
+            {% if form.cedula.errors %}<p class="mt-2 text-sm text-red-600">{{ form.cedula.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+            <label class="mb-2 block text-sm font-semibold text-slate-700" for="{{ form.correo_corporativo.id_for_label }}">Correo corporativo</label>
+            {{ form.correo_corporativo }}
+            {% if form.correo_corporativo.errors %}<p class="mt-2 text-sm text-red-600">{{ form.correo_corporativo.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+            <label class="mb-2 block text-sm font-semibold text-slate-700" for="{{ form.empresa.id_for_label }}">Empresa</label>
+            {{ form.empresa }}
+            {% if form.empresa.errors %}<p class="mt-2 text-sm text-red-600">{{ form.empresa.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+            <label class="mb-2 block text-sm font-semibold text-slate-700" for="{{ form.cargo.id_for_label }}">Cargo</label>
+            {{ form.cargo }}
+            {% if form.cargo.errors %}<p class="mt-2 text-sm text-red-600">{{ form.cargo.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+            <label class="mb-2 block text-sm font-semibold text-slate-700" for="{{ form.area.id_for_label }}">Área</label>
+            {{ form.area }}
+            {% if form.area.errors %}<p class="mt-2 text-sm text-red-600">{{ form.area.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+            <label class="mb-2 block text-sm font-semibold text-slate-700" for="{{ form.ubicacion.id_for_label }}">Ubicación</label>
+            {{ form.ubicacion }}
+            {% if form.ubicacion.errors %}<p class="mt-2 text-sm text-red-600">{{ form.ubicacion.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+            <label class="mb-2 block text-sm font-semibold text-slate-700" for="{{ form.centro_costo.id_for_label }}">Centro de costo</label>
+            {{ form.centro_costo }}
+            {% if form.centro_costo.errors %}<p class="mt-2 text-sm text-red-600">{{ form.centro_costo.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+            <label class="mb-2 block text-sm font-semibold text-slate-700" for="{{ form.estado.id_for_label }}">Estado</label>
+            {{ form.estado }}
+            {% if form.estado.errors %}<p class="mt-2 text-sm text-red-600">{{ form.estado.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+            <label class="mb-2 block text-sm font-semibold text-slate-700" for="{{ form.fecha_ingreso.id_for_label }}">Fecha de ingreso</label>
+            {{ form.fecha_ingreso }}
+            {% if form.fecha_ingreso.errors %}<p class="mt-2 text-sm text-red-600">{{ form.fecha_ingreso.errors|join:", " }}</p>{% endif %}
+        </div>
+    </div>
+
+    <div>
+        <label class="mb-2 block text-sm font-semibold text-slate-700" for="{{ form.observaciones.id_for_label }}">Observaciones</label>
+        {{ form.observaciones }}
+        {% if form.observaciones.errors %}<p class="mt-2 text-sm text-red-600">{{ form.observaciones.errors|join:", " }}</p>{% endif %}
+    </div>
+
+    {% if form.non_field_errors %}
+        <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {{ form.non_field_errors }}
+        </div>
+    {% endif %}
+
+    <div class="flex items-center gap-3">
+        <button type="submit" class="rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-cyan-700">
+            Guardar colaborador
+        </button>
+        <a href="{% url 'colaboradores:lista' %}" class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+            Cancelar
+        </a>
+    </div>
+</form>
+{% endblock %}

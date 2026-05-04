@@ -75,6 +75,33 @@ class Ubicacion(models.Model):
         return self.nombre
 
 
+class DepartamentoEmpresa(models.Model):
+    empresa = models.ForeignKey(
+        Empresa,
+        on_delete=models.PROTECT,
+        related_name="departamentos",
+    )
+    nombre = models.CharField(max_length=120)
+    descripcion = models.TextField(blank=True)
+    activo = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Departamento de empresa"
+        verbose_name_plural = "Departamentos de empresa"
+        ordering = ["empresa__nombre", "nombre"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["empresa", "nombre"],
+                name="unique_departamento_por_empresa",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.empresa} - {self.nombre}"
+
+
 class CentroCosto(models.Model):
     class TipoCentroCosto(models.TextChoices):
         OPERATIVO = "OPERATIVO", "Operativo"
@@ -116,6 +143,12 @@ class CentroCosto(models.Model):
         related_name="centros_costo_responsable",
         null=True,
         blank=True,
+    )
+    departamentos = models.ManyToManyField(
+        DepartamentoEmpresa,
+        related_name="centros_costo",
+        blank=True,
+        help_text="Departamentos de la empresa que engloba este CECO.",
     )
     fecha_inicio = models.DateField(null=True, blank=True)
     fecha_fin = models.DateField(null=True, blank=True)
@@ -167,6 +200,11 @@ class CentroCosto(models.Model):
             nodos.append(padre.codigo)
             padre = padre.padre
         return " > ".join(reversed(nodos))
+
+    @property
+    def departamentos_resumen(self):
+        nombres = [departamento.nombre for departamento in self.departamentos.order_by("nombre")]
+        return ", ".join(nombres) if nombres else "-"
 
 
 class TipoActivo(models.Model):

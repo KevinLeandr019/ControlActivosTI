@@ -3,12 +3,15 @@ from decimal import Decimal
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, Prefetch, Q
 from django.urls import reverse
-from django.views.generic import DetailView, ListView
+from django.http import HttpResponseRedirect
+from django.urls import reverse_lazy
+from django.views.generic import CreateView, DetailView, ListView
 
 from apps.activos.models import FotoActivo
 from apps.asignaciones.models import Asignacion, AsignacionDetalle
 from apps.catalogos.models import Area, Empresa, Ubicacion
 
+from .forms import ColaboradorForm
 from .models import Colaborador
 
 ASIGNACIONES_ABIERTAS = [
@@ -130,6 +133,17 @@ class ColaboradorListView(LoginRequiredMixin, ListView):
                 on_ends=1,
             )
         return context
+
+
+class ColaboradorCreateView(LoginRequiredMixin, CreateView):
+    model = Colaborador
+    form_class = ColaboradorForm
+    template_name = "colaboradores/formulario.html"
+    success_url = reverse_lazy("colaboradores:lista")
+
+    def form_valid(self, form):
+        self.object = form.save()
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class ColaboradorDetailView(LoginRequiredMixin, DetailView):

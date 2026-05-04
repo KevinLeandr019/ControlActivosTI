@@ -18,6 +18,7 @@ from apps.catalogos.models import (
     Area,
     Cargo,
     CentroCosto,
+    DepartamentoEmpresa,
     Empresa,
     EstadoActivo,
     TipoActivo,
@@ -66,6 +67,15 @@ CATALOG_CONFIG = {
         "fields": ["nombre", "descripcion", "activo"],
         "columns": ["nombre", "activo", "updated_at"],
         "admin_changelist": "admin:catalogos_empresa_changelist",
+    },
+    "departamentos": {
+        "model": DepartamentoEmpresa,
+        "title": "Departamentos de empresa",
+        "singular": "Departamento de empresa",
+        "description": "Agrupan departamentos propios de cada empresa para vincularlos a un CECO compartido.",
+        "fields": ["empresa", "nombre", "descripcion", "activo"],
+        "columns": ["nombre", "empresa", "activo", "updated_at"],
+        "admin_changelist": "admin:catalogos_departamentoempresa_changelist",
     },
     "ubicaciones": {
         "model": Ubicacion,
@@ -441,7 +451,7 @@ class Admin2HomeView(Admin2AccessMixin, Admin2BaseContextMixin, TemplateView):
             },
             {
                 "label": "App de catálogos",
-                "description": "Entrada agrupada para Areas, Cargos, Empresas, Ubicaciones y CECO.",
+                "description": "Entrada agrupada para Areas, Cargos, Empresas, Departamentos, Ubicaciones y CECO.",
                 "url": reverse("admin:app_list", kwargs={"app_label": "catalogos"}),
             },
             {
