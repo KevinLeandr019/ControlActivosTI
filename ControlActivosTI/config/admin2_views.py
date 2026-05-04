@@ -116,7 +116,7 @@ ADMIN2_MODULES = [
     },
     {
         "slug": "catalogos",
-        "title": "Catalogos",
+        "title": "Configuración",
         "description": "Mantiene estados, tipos y tablas maestras que alimentan la operacion.",
         "icon_label": "CT",
         "eyebrow": "Configuracion",
@@ -137,7 +137,7 @@ ADMIN2_MODULES = [
     },
     {
         "slug": "inventario",
-        "title": "Inventario",
+        "title": "Activos",
         "description": "Monitorea el parque de activos con foco en disponibilidad y estado actual.",
         "icon_label": "IN",
         "eyebrow": "Operacion",
@@ -203,7 +203,7 @@ class Admin2BaseContextMixin:
                 "metric_value": usuarios_staff,
             },
             "catalogos": {
-                "metric_label": "Catalogos activos",
+                "metric_label": "Tablas maestras activas",
                 "metric_value": len(CATALOG_CONFIG),
             },
             "seguridad": {
@@ -237,7 +237,7 @@ class Admin2BaseContextMixin:
             {"label": "Activos", "url": get_admin_changelist_url(Activo)},
             {"label": "Asignaciones", "url": get_admin_changelist_url(Asignacion)},
             {"label": "Colaboradores", "url": get_admin_changelist_url(Colaborador)},
-            {"label": "Catálogos", "url": reverse("admin:app_list", kwargs={"app_label": "catalogos"})},
+            {"label": "Configuración", "url": reverse("admin:app_list", kwargs={"app_label": "catalogos"})},
         ]
         return context
 
@@ -274,7 +274,7 @@ class Admin2HomeView(Admin2AccessMixin, Admin2BaseContextMixin, TemplateView):
         context["admin_groups"] = [
             {
                 "section_id": "accesos-seguridad",
-                "title": "Accesos y seguridad",
+                "title": "Accesos y permisos",
                 "subtitle": "Administrar ingreso, privilegios o estructura de permisos.",
                 "tone": "emerald",
                 "items": [
@@ -298,7 +298,7 @@ class Admin2HomeView(Admin2AccessMixin, Admin2BaseContextMixin, TemplateView):
             },
             {
                 "section_id": "inventario-ti",
-                "title": "Inventario TI",
+                "title": "Activos",
                 "subtitle": "Revisar equipos, estados y trazabilidad técnica del inventario.",
                 "tone": "slate",
                 "items": [
@@ -322,7 +322,7 @@ class Admin2HomeView(Admin2AccessMixin, Admin2BaseContextMixin, TemplateView):
             },
             {
                 "section_id": "colaboradores-entregas",
-                "title": "Colaboradores y entregas",
+                "title": "Colaboradores",
                 "subtitle": "Relacionar personas con equipos y mantener el control de entregas.",
                 "tone": "emerald",
                 "items": [
@@ -354,7 +354,7 @@ class Admin2HomeView(Admin2AccessMixin, Admin2BaseContextMixin, TemplateView):
             },
             {
                 "section_id": "catalogos-estructura",
-                "title": "Catalogos y estructura",
+                "title": "Tablas maestras",
                 "subtitle": "Mantener tablas maestras y configuraciones que alimentan toda la operación.",
                 "tone": "slate",
                 "items": [
@@ -427,29 +427,11 @@ class Admin2HomeView(Admin2AccessMixin, Admin2BaseContextMixin, TemplateView):
         ]
         context["admin2_scroll_sections"] = [
             {"label": "Resumen", "url": "#admin2-resumen", "icon_label": "IN"},
-            {"label": "Guia", "url": "#admin2-guia", "icon_label": "GU"},
             {"label": "Seguridad", "url": "#accesos-seguridad", "icon_label": "SG"},
-            {"label": "Inventario", "url": "#inventario-ti", "icon_label": "TI"},
-            {"label": "Entregas", "url": "#colaboradores-entregas", "icon_label": "ET"},
-            {"label": "Catálogos", "url": "#catalogos-estructura", "icon_label": "CT"},
-            {"label": "Extras", "url": "#admin2-accesos-extra", "icon_label": "EX"},
-        ]
-        context["admin_guide"] = [
-            {
-                "step": "1",
-                "title": "Elige la intención",
-                "description": "Empieza por la sección que mejor describa lo que TI necesita resolver.",
-            },
-            {
-                "step": "2",
-                "title": "Abre el modelo correcto",
-                "description": "Cada tarjeta lleva directo al listado de Django Admin de ese modelo.",
-            },
-            {
-                "step": "3",
-                "title": "Haz la gestión técnica",
-                "description": "Una vez dentro de Django Admin, ahí sí se realiza el cambio real.",
-            },
+            {"label": "Activos", "url": "#inventario-ti", "icon_label": "AC"},
+            {"label": "Colaboradores", "url": "#colaboradores-entregas", "icon_label": "CO"},
+            {"label": "Configuración", "url": "#catalogos-estructura", "icon_label": "CF"},
+            {"label": "Administrador", "url": "#admin2-accesos-extra", "icon_label": "AD"},
         ]
         context["admin_support_links"] = [
             {
@@ -487,7 +469,7 @@ class Admin2ModuleView(Admin2AccessMixin, Admin2BaseContextMixin, TemplateView):
             "description": "Vista para revisar quienes tienen acceso y apoyarte en Django Admin para permisos avanzados.",
         },
         "catalogos": {
-            "title": "Catalogos",
+            "title": "Configuración",
             "subtitle": "Tablas maestras del sistema",
             "description": "Panel para administrar catálogos desde /admin2 y dejar en Django Admin solo lo más técnico.",
         },
@@ -502,7 +484,7 @@ class Admin2ModuleView(Admin2AccessMixin, Admin2BaseContextMixin, TemplateView):
             "description": "Resumen de indicadores que ayudan a tomar decisiones sin salir a cada modulo operativo.",
         },
         "inventario": {
-            "title": "Inventario",
+            "title": "Activos",
             "subtitle": "Control del parque de activos",
             "description": "Lectura administrativa del inventario con foco en estado, disponibilidad y ultimos ingresos.",
         },

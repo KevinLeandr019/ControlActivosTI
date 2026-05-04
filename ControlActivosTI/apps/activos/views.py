@@ -1,5 +1,6 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Prefetch, Q
+from django.urls import reverse
 from django.views.generic import DetailView, ListView
 
 from apps.asignaciones.models import AsignacionDetalle
@@ -132,6 +133,8 @@ class ActivoDetailView(LoginRequiredMixin, DetailView):
 
         context["asignacion_activa"] = detalle_activo.asignacion if detalle_activo else None
         context["detalle_asignacion_activa"] = detalle_activo
+        context["admin_change_url"] = reverse("admin:activos_activo_change", args=[activo.pk])
+        context["fotos_activo"] = list(activo.fotos.all())
         context["historial_asignaciones"] = historial_reciente
         context["historial_asignaciones_completo"] = historial_completo
         context["total_historial_asignaciones"] = len(detalles_asignacion)

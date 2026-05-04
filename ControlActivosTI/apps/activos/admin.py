@@ -62,7 +62,7 @@ class FotoActivoInline(admin.TabularInline):
         if obj.pk and obj.imagen:
             return format_html(
                 '<img src="{}" style="max-height: 80px; max-width: 120px; border-radius: 6px;" />',
-                obj.imagen.url
+                obj.preview_url
             )
         return "Sin imagen"
 
@@ -170,7 +170,7 @@ class ActivoAdmin(admin.ModelAdmin):
         if primera_foto and primera_foto.imagen:
             return format_html(
                 '<img src="{}" style="max-height: 50px; max-width: 80px; border-radius: 4px;" />',
-                primera_foto.imagen.url
+                primera_foto.imagen_thumb_url
             )
         return "Sin imagen"
 

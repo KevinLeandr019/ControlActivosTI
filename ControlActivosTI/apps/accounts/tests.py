@@ -94,6 +94,19 @@ class Admin2ViewsTests(TestCase):
         self.assertContains(response, "Asignaciones")
         self.assertContains(response, "Activos registrados")
 
+    def test_admin2_home_uses_practical_section_names(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("admin2-inicio"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Activos")
+        self.assertContains(response, "Colaboradores")
+        self.assertContains(response, "Tablas maestras")
+        self.assertContains(response, "Administrador")
+        self.assertNotContains(response, "Guía rápida")
+        self.assertNotContains(response, 'href="#admin2-guia"')
+
     def test_admin2_inventory_module_shows_asset_rows(self):
         self.client.force_login(self.user)
 

@@ -1,11 +1,17 @@
+import posixpath
 import re
 import unicodedata
+from io import BytesIO
+from pathlib import Path
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.db import models
 from django.db.models import Max
 from django.utils import timezone
+from PIL import Image, ImageOps
 
 from apps.catalogos.models import EstadoActivo, TipoActivo, TipoEventoActivo
 
@@ -26,6 +32,12 @@ PREFIJOS_TIPOS_ACTIVO = {
     "teclado": "TEC",
     "base para laptop": "BLP",
     "pc": "PC",
+}
+
+FOTO_VARIANTS = {
+    "thumb": 360,
+    "medium": 960,
+    "large": 1600,
 }
 
 
@@ -192,6 +204,125 @@ class FotoActivo(models.Model):
         codigo = self.activo.codigo if self.activo_id else "sin-activo"
         return f"Foto {self.orden or '-'} - {codigo}"
 
+    def _source_filename(self):
+        if not self.imagen:
+            return ""
+        return Path(self.imagen.name).name
+
+    def _variant_name(self, variant):
+        source_name = self._source_filename()
+        if not source_name:
+            return ""
+        base_name = Path(source_name).stem
+        base_dir = posixpath.dirname(self.imagen.name)
+        variant_filename = f"{base_name}_{variant}.webp"
+        return posixpath.join(base_dir, variant_filename) if base_dir else variant_filename
+
+    def _normalize_image_file(self, max_dimension=1600, quality=88):
+        if not self.imagen:
+            return None
+
+        self.imagen.file.seek(0)
+        with Image.open(self.imagen.file) as image:
+            image = ImageOps.exif_transpose(image)
+            if image.mode == "P":
+                image = image.convert("RGBA")
+            elif image.mode not in ("RGB", "RGBA"):
+                image = image.convert("RGBA" if "A" in image.getbands() else "RGB")
+
+            image.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
+
+            buffer = BytesIO()
+            image.save(buffer, format="WEBP", quality=quality, method=6)
+            buffer.seek(0)
+
+        normalized_name = f"{Path(self._source_filename()).stem}.webp"
+        return ContentFile(buffer.read(), name=normalized_name)
+
+    def _save_variant_file(self, variant, max_dimension):
+        variant_name = self._variant_name(variant)
+        if not variant_name or not default_storage.exists(self.imagen.name):
+            return ""
+        if default_storage.exists(variant_name):
+            return variant_name
+
+        with default_storage.open(self.imagen.name, "rb") as source_file:
+            with Image.open(source_file) as image:
+                image = ImageOps.exif_transpose(image)
+                if image.mode == "P":
+                    image = image.convert("RGBA")
+                elif image.mode not in ("RGB", "RGBA"):
+                    image = image.convert("RGBA" if "A" in image.getbands() else "RGB")
+
+                image.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
+
+                buffer = BytesIO()
+                image.save(buffer, format="WEBP", quality=82, method=6)
+                buffer.seek(0)
+
+        default_storage.save(variant_name, ContentFile(buffer.read()))
+        return variant_name
+
+    def _ensure_variant_files(self):
+        if not self.imagen:
+            return
+
+        for variant, max_dimension in FOTO_VARIANTS.items():
+            self._save_variant_file(variant, max_dimension)
+
+    def _delete_related_files(self, source_name):
+        if not source_name:
+            return
+
+        default_storage.delete(source_name)
+        base_name = Path(source_name).stem
+        base_dir = posixpath.dirname(source_name)
+        for variant in FOTO_VARIANTS:
+            variant_filename = f"{base_name}_{variant}.webp"
+            variant_name = posixpath.join(base_dir, variant_filename) if base_dir else variant_filename
+            default_storage.delete(variant_name)
+
+    @property
+    def imagen_original_url(self):
+        return self.imagen.url if self.imagen else ""
+
+    @property
+    def imagen_large_url(self):
+        if not self.imagen:
+            return ""
+        variant_name = self._save_variant_file("large", FOTO_VARIANTS["large"])
+        return default_storage.url(variant_name) if variant_name else self.imagen.url
+
+    @property
+    def imagen_medium_url(self):
+        if not self.imagen:
+            return ""
+        variant_name = self._save_variant_file("medium", FOTO_VARIANTS["medium"])
+        return default_storage.url(variant_name) if variant_name else self.imagen.url
+
+    @property
+    def imagen_thumb_url(self):
+        if not self.imagen:
+            return ""
+        variant_name = self._save_variant_file("thumb", FOTO_VARIANTS["thumb"])
+        return default_storage.url(variant_name) if variant_name else self.imagen.url
+
+    @property
+    def imagen_srcset(self):
+        if not self.imagen:
+            return ""
+        return ", ".join(
+            [
+                f"{self.imagen_thumb_url} 360w",
+                f"{self.imagen_medium_url} 960w",
+                f"{self.imagen_large_url} 1600w",
+            ]
+        )
+
+    @property
+    def preview_url(self):
+        return self.imagen_thumb_url
+
     def clean(self):
         super().clean()
 
@@ -210,6 +341,13 @@ class FotoActivo(models.Model):
                 raise ValidationError({"orden": "Ya existe una foto con ese orden para este activo."})
 
     def save(self, *args, **kwargs):
+        old_imagen_name = None
+        if self.pk:
+            old_imagen_name = FotoActivo.objects.filter(pk=self.pk).values_list("imagen", flat=True).first()
+
+        if self.imagen and not getattr(self.imagen, "_committed", True):
+            self.imagen = self._normalize_image_file()
+
         if self.activo_id and not self.orden:
             ultimo_orden = (
                 FotoActivo.objects
@@ -222,6 +360,15 @@ class FotoActivo(models.Model):
 
         self.full_clean()
         super().save(*args, **kwargs)
+        self._ensure_variant_files()
+
+        if old_imagen_name and old_imagen_name != self.imagen.name:
+            self._delete_related_files(old_imagen_name)
+
+    def delete(self, *args, **kwargs):
+        source_name = self.imagen.name if self.imagen else ""
+        super().delete(*args, **kwargs)
+        self._delete_related_files(source_name)
 
 
 class EventoActivo(models.Model):

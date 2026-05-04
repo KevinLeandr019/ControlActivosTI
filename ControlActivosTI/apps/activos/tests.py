@@ -1,20 +1,40 @@
 from datetime import date
 from decimal import Decimal
+from io import BytesIO
+from pathlib import Path
+import shutil
+import uuid
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test.utils import override_settings
 from django.test import TestCase
 from django.urls import reverse
 
 from apps.asignaciones.models import Asignacion, AsignacionDetalle
 from apps.catalogos.models import Area, Cargo, CentroCosto, Empresa, EstadoActivo, TipoActivo, TipoEventoActivo, Ubicacion
 from apps.colaboradores.models import Colaborador
+from PIL import Image
 
 from apps.activos.admin import ActivoAdminForm, EventoActivoAdminForm, FotoActivoInlineForm
 from apps.activos.models import Activo, EventoActivo, FotoActivo
 
 
 User = get_user_model()
+
+
+def make_test_image_file(name="activo.jpg", size=(2200, 1400), color=(36, 99, 235)):
+    buffer = BytesIO()
+    image = Image.new("RGB", size, color=color)
+    image.save(buffer, format="JPEG", quality=95)
+    return SimpleUploadedFile(name, buffer.getvalue(), content_type="image/jpeg")
+
+
+def make_test_media_root():
+    media_root = Path.cwd() / "test-media" / uuid.uuid4().hex
+    media_root.mkdir(parents=True, exist_ok=True)
+    return media_root
 
 
 class ActivoAdminFormTests(TestCase):
@@ -159,6 +179,46 @@ class FotoActivoInlineFormTests(TestCase):
 
         self.assertTrue(form.is_valid(), form.errors)
         self.assertEqual(form.cleaned_data["imagen"], foto.imagen)
+
+
+class FotoActivoOptimizadaTests(TestCase):
+    def setUp(self):
+        self.media_root = make_test_media_root()
+        self.override_media = override_settings(MEDIA_ROOT=self.media_root)
+        self.override_media.enable()
+
+        self.estado = EstadoActivo.objects.create(nombre="Disponible", permite_asignacion=True)
+        self.tipo = TipoActivo.objects.create(nombre="Laptop")
+        self.activo = Activo.objects.create(
+            tipo_activo=self.tipo,
+            marca="Dell",
+            modelo="Latitude",
+            serie="IMG-001",
+            estado_activo=self.estado,
+        )
+
+    def tearDown(self):
+        self.override_media.disable()
+        shutil.rmtree(self.media_root, ignore_errors=True)
+
+    def test_normaliza_imagen_y_crea_variantes_optimizada(self):
+        foto = FotoActivo.objects.create(
+            activo=self.activo,
+            imagen=make_test_image_file(),
+            descripcion="Frontal",
+            orden=1,
+        )
+
+        foto.refresh_from_db()
+
+        self.assertTrue(foto.imagen.name.endswith(".webp"))
+        self.assertTrue(foto.imagen_thumb_url.endswith("_thumb.webp"))
+        self.assertTrue(foto.imagen_medium_url.endswith("_medium.webp"))
+        self.assertTrue(foto.imagen_large_url.endswith("_large.webp"))
+        self.assertTrue(self.media_root.joinpath(foto.imagen.name).exists())
+        self.assertTrue(self.media_root.joinpath(foto._variant_name("thumb")).exists())
+        self.assertTrue(self.media_root.joinpath(foto._variant_name("medium")).exists())
+        self.assertTrue(self.media_root.joinpath(foto._variant_name("large")).exists())
 
 
 class EventoActivoAdminFormTests(TestCase):
@@ -399,3 +459,45 @@ class ActivoDetailViewTests(TestCase):
         self.assertContains(response, "Mostrando las 5 asignaciones mÃ¡s recientes")
         self.assertContains(response, "Ver historial completo")
         self.assertContains(response, "LAP-001")
+        self.assertContains(response, reverse("admin:activos_activo_change", args=[self.activo.pk]))
+
+    def test_detail_view_blocks_quarantine_from_available_message(self):
+        cuarentena = EstadoActivo.objects.create(nombre="Cuarentena", permite_asignacion=False)
+        activo_cuarentena = Activo.objects.create(
+            tipo_activo=self.tipo_laptop,
+            marca="Lenovo",
+            modelo="ThinkPad",
+            serie="LAP-002",
+            estado_activo=cuarentena,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("activos:detalle", args=[activo_cuarentena.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Este activo no está disponible para una nueva asignación")
+        self.assertContains(response, "Cuarentena")
+        self.assertNotContains(response, "Este activo está disponible para una nueva asignación.")
+
+    def test_detail_view_renders_photo_carousel_with_optimized_urls(self):
+        media_root = make_test_media_root()
+        try:
+            with override_settings(MEDIA_ROOT=media_root):
+                FotoActivo.objects.create(
+                    activo=self.activo,
+                    imagen=make_test_image_file("portada.jpg"),
+                    descripcion="Portada",
+                    orden=1,
+                )
+
+                self.client.force_login(self.user)
+                response = self.client.get(reverse("activos:detalle", args=[self.activo.pk]))
+
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, "data-photo-carousel")
+            self.assertContains(response, "data-carousel-slide")
+            self.assertContains(response, "data-image-modal")
+            self.assertContains(response, ".webp")
+            self.assertNotContains(response, 'target="_blank"')
+        finally:
+            shutil.rmtree(media_root, ignore_errors=True)
